@@ -1,2 +1,2 @@
 # koatty-trace
-full link tracking and error interception for kaotty.
+Full link tracking and error interception for kaotty.
