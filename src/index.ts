@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: linyyyang<linyyyang@tencent.com>
- * @LastEditTime: 2020-11-27 16:44:10
+ * @LastEditTime: 2020-12-15 16:06:01
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -13,168 +13,32 @@ import { v4 as uuid4 } from "uuid";
 /**
  *
  *
- * @param {*} app
- * @param {*} ctx
- * @param {*} options
- * @param {*} body
- * @returns
+ * @export
+ * @class HttpError
+ * @extends {Error}
  */
-const htmlRend = async function (app: any, ctx: any, options: TraceOptions, body: any) {
-    let contentType = 'text/html';
-    if (options.encoding !== false && contentType.indexOf('charset=') === -1) {
-        contentType = `${contentType}; charset=${options.encoding}`;
-    }
-    ctx.type = contentType;
-    let res = ''; let stack = '';
-    const resBody = {
-        code: options.error_code || 1, // 此处和框架输出统一
-        message: ctx.message,
-    };
-    if (lib.isError(body)) {
-        const { code, message } = <any>body;
-        resBody.code = code || resBody.code;
-        resBody.message = message;
-        stack = body.stack;
-    }
+export class HttpError extends Error {
+    public status: number;
 
-    if (options.error_path) {
-        if (ctx.compile) {
-            ctx._assign = resBody;
-            logger.Info('auto render the error template.');
-            res = await ctx.compile(`${options.error_path}/${ctx.status}.html`, ctx._assign || {});
-        } else {
-            logger.Warn('`tkoatty-view `middleware is not included, so it only outputs file content.');
-            res = await lib.readFile(`${options.error_path}/${ctx.status}.html`, 'utf-8');
-        }
-    } else {
-        res = `<!DOCTYPE html><html><head><title>Error - ${resBody.code}</title><meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
-            <style>body {padding: 50px 80px;font: 14px 'Microsoft YaHei','微软雅黑',Helvetica,Sans-serif;}h1, h2 {margin: 0;padding: 10px 0;}h1 {font-size: 2em;}h2 {font-size: 1.2em;font-weight: 200;color: #aaa;}pre {font-size: .8em;}</style>
-            </head><body><div id="error"><h1>Error</h1><p>Oops! Your visit is rejected!</p><h2>Message:</h2><pre><code>${resBody.message || ''}</code></pre>`;
-        // if (app.appDebug || body.expose) {
-        if (app.appDebug) {
-            res = `${res}<h2>Stack:</h2><pre><code>${stack || ''}</code></pre>`;
-        }
-        res = `${res}</div></body></html>`;
+    constructor(status: number, message: string) {
+        super(message);
+        this.status = status;
     }
-    return ctx.res.end(res);
-};
-/**
- *
- *
- * @param {Koatty} app
- * @param {KoattyContext} ctx
- * @param {*} options
- * @param {*} body
- * @returns {*}  
- */
-const jsonRend = function (app: any, ctx: any, options: TraceOptions, body: any) {
-    let contentType = 'application/json';
-    if (options.encoding !== false && contentType.indexOf('charset=') === -1) {
-        contentType = `${contentType}; charset=${options.encoding}`;
-    }
-    ctx.type = contentType;
-    let { message } = ctx;
-    let code = options.error_code || 1; // 此处和框架输出统一
-    if (lib.isError(body)) {
-        const { cod, msg } = <any>body;
-        code = cod || code;
-        message = msg || message;
-    }
-    return ctx.res.end(`{"code": ${code},"message":"${message || ''}"}`);
-};
+}
 
 /**
  *
  *
- * @param {Koatty} app
- * @param {KoattyContext} ctx
- * @param {*} options
- * @param {*} body
- * @returns {*}  
+ * @template T
+ * @param {(HttpError | T)} err
+ * @returns {*}  {err is HttpError}
  */
-const textRend = function (app: any, ctx: any, options: TraceOptions, body: any) {
-    let contentType = 'text/plain';
-    if (options.encoding !== false && contentType.indexOf('charset=') === -1) {
-        contentType = `${contentType}; charset=${options.encoding}`;
-    }
-    ctx.type = contentType;
-    let { message } = ctx;
-    let code = options.error_code || 1; // 此处和框架输出统一
-    if (lib.isError(body)) {
-        const { cod, msg } = <any>body;
-        code = cod || code;
-        message = msg || message;
-    }
-    return ctx.res.end(`Error: code: ${code}, message: ${message || ''} `);
-};
-/**
- *
- *
- * @param {Koatty} app
- * @param {KoattyContext} ctx
- * @param {*} options
- * @param {*} body
- * @returns {*}  
- */
-const defaultRend = function (app: any, ctx: any, options: TraceOptions, body: any) {
-    let { message } = ctx;
-    let code = options.error_code || 1; // 此处和框架输出统一
-    if (lib.isError(body)) {
-        const { cod, msg } = <any>body;
-        code = cod || code;
-        message = msg || message;
-    }
-    return ctx.res.end(`Error: code: ${code}, message: ${message || ''} `);
-};
-/**
- *
- *
- * @param {Koatty} app
- * @param {KoattyContext} ctx
- * @param {*} options
- * @param {*} body
- * @returns {*}  {Promise<any>}
- */
-const responseBody = async function (app: any, ctx: any, options: TraceOptions, body: any): Promise<any> {
-    try {
-        const contentType = parseResContentType(ctx);
-        // accepted types
-        switch (contentType) {
-            case 'json':
-                await jsonRend(app, ctx, options, body);
-                break;
-            case 'html':
-                await htmlRend(app, ctx, options, body);
-                break;
-            case 'text':
-                await textRend(app, ctx, options, body);
-                break;
-            default:
-                await defaultRend(app, ctx, options, body);
-                break;
-        }
-    } catch (err) {
-        logger.Error(err);
-    }
-    return null;
-};
+export const isHttpError = <T extends { message: string; status?: number }>(
+    err: HttpError | T,
+): err is HttpError =>
+    err instanceof HttpError ||
+    !!(err && typeof err.status === 'number' && typeof err.message === 'string');
 
-/**
- * parse response content-type
- *
- * @param {KoattyContext} ctx
- * @returns {*}  
- */
-const parseResContentType = function (ctx: any) {
-    if (ctx.response.type === '') {
-        return ctx.accepts('json', 'html', 'text');
-    }
-    const type = ctx.response.is('json', 'html', 'text');
-    if (type) {
-        return type;
-    }
-    return '';
-};
 
 /**
  * error catcher
@@ -189,7 +53,7 @@ const catcher = async function (app: any, ctx: any, options: TraceOptions, err: 
     if (!app.isPrevent(err)) {
         app.emit('error', err, ctx);
         const { status } = <any>err;
-        ctx.status = (typeof status === 'number') ? status : (options.error_code || 500);
+        ctx.status = (typeof status === 'number') ? status : 500;
         return responseBody(app, ctx, options, err);
     }
     return null;
@@ -209,7 +73,7 @@ const defaultOptions = {
  *
  * @interface TraceOptions
  */
-interface TraceOptions {
+export interface TraceOptions {
     timeout: number;
     error_code: number;
     error_path: string;
@@ -269,7 +133,7 @@ export function trace(options: TraceOptions, app: any) {
             const now = Date.now();
             if (currTraceId) {
                 const duration = (now - startTime) || 0;
-                logger.Write("trace", {
+                logger.Write("TRACE", {
                     action: method,
                     code: status,
                     startTime,
