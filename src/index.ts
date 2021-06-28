@@ -1,178 +1,267 @@
 /*
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
- * @LastEditors: linyyyang<linyyyang@tencent.com>
- * @LastEditTime: 2020-12-15 16:06:01
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-06-28 16:43:20
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
-import * as lib from "koatty_lib";
-import { DefaultLogger as logger } from "koatty_logger";
-import { v4 as uuid4 } from "uuid";
+import { IncomingMessage, ServerResponse } from 'http';
+import { Http2ServerRequest, Http2ServerResponse } from 'http2';
+import { Namespace, createNamespace } from "cls-hooked";
+import { Koatty, KoattyContext, Helper, Logger } from 'koatty';
+import { Exception, isException, isPrevent } from './Exception';
+import { v4 as uuid } from "uuid";
+// export
+export * from "./Exception";
 
 /**
- *
+ * Create Namespace
  *
  * @export
- * @class HttpError
- * @extends {Error}
+ * @returns {*}  
  */
-export class HttpError extends Error {
-    public status: number;
+export function TraceServerSetup(app: Koatty): Namespace {
+    const traceCls = createNamespace('koatty-debug-trace');
+    // app.trace = traceCls;
+    Helper.define(app, 'trace', traceCls);
+    return traceCls;
+}
 
-    constructor(status: number, message: string) {
-        super(message);
-        this.status = status;
+/**
+ * debug/trace server handle binding
+ *
+ * @param {Koatty} app  app instance
+ * @param {IncomingMessage | Http2ServerRequest} req  request
+ * @param {ServerResponse | Http2ServerResponse} res  response
+ * @param {boolean} openTrace enable full stack debug & trace
+ */
+export function TraceBinding(
+    app: Koatty,
+    req: IncomingMessage | Http2ServerRequest,
+    res: ServerResponse | Http2ServerResponse,
+    openTrace: boolean,
+) {
+    // if enable full stack debug & trace
+    if (openTrace) {
+        app.trace.run(() => {
+            // event binding
+            app.trace.bindEmitter(req);
+            app.trace.bindEmitter(res);
+            // execute app.callback
+            app.callback()(req, res);
+        });
+    } else {
+        app.callback()(req, res);
     }
 }
 
 /**
+ * Trace middleware handler
  *
- *
- * @template T
- * @param {(HttpError | T)} err
- * @returns {*}  {err is HttpError}
- */
-export const isHttpError = <T extends { message: string; status?: number }>(
-    err: HttpError | T,
-): err is HttpError =>
-    err instanceof HttpError ||
-    !!(err && typeof err.status === 'number' && typeof err.message === 'string');
-
-
-/**
- * error catcher
- *
+ * @export
  * @param {Koatty} app
- * @param {KoattyContext} ctx
- * @param {*} options
- * @param {Error} err
  * @returns {*}  
  */
-const catcher = async function (app: any, ctx: any, options: TraceOptions, err: Error) {
-    if (!app.isPrevent(err)) {
-        app.emit('error', err, ctx);
-        const { status } = <any>err;
-        ctx.status = (typeof status === 'number') ? status : 500;
-        return responseBody(app, ctx, options, err);
-    }
-    return null;
-};
+export function TraceHandler(app: Koatty) {
+    const timeout = (app.config('http_timeout') ?? 10) * 1000;
+    const encoding = app.config('encoding') ?? 'utf-8';
 
-/**
- * default options
- */
-const defaultOptions = {
-    timeout: 10, // http服务超时时间,单位s
-    error_code: 500, // 报错时的状态码
-    error_path: '', // 错误模板目录配置.该目录下放置404.html、502.html等,框架会自动根据status进行渲染(支持模板变量,依赖`koatty_view`中间件;如果`koatty_view`中间件未加载,仅输出模板内容)
-};
-
-/**
- *
- *
- * @interface TraceOptions
- */
-export interface TraceOptions {
-    timeout: number;
-    error_code: number;
-    error_path: string;
-    encoding?: any;
-}
-
-/**
- *
- *
- * @export
- * @param {*} options
- * @param {*} app
- * @returns {*}  
- */
-export function trace(options: TraceOptions, app: any) {
-    options = { ...defaultOptions, ...options };
-
-    if (options.error_path && (options.error_path).startsWith('./')) {
-        options.error_path = (options.error_path).replace('./', `${process.env.ROOT_PATH}/`);
-    }
-    // ms
-    options.timeout = (options.timeout || 30) * 1000;
-    options.encoding = app.config('encoding') || 'utf-8';
-
-    return async function (ctx: any, next: Function) {
+    return async function (ctx: KoattyContext, next: Function): Promise<any> {
         // set ctx start time
-        lib.define(ctx, 'startTime', Date.now());
+        Helper.define(ctx, 'startTime', Date.now());
         // http version
-        lib.define(ctx, 'version', ctx.req.httpVersion);
+        Helper.define(ctx, 'version', ctx.req.httpVersion);
         // originalPath
-        lib.define(ctx, 'originalPath', ctx.path);
+        Helper.define(ctx, 'originalPath', ctx.path);
+        // Encoding
+        ctx.encoding = encoding;
         // auto send security header
         ctx.set('X-Powered-By', 'Koatty');
         ctx.set('X-Content-Type-Options', 'nosniff');
         ctx.set('X-XSS-Protection', '1;mode=block');
 
-        // 如果app有traceInstance，说明开启全链路debug/trace，生成traceId
+        // if enable full stack debug & trace，created traceId
         let currTraceId = '';
         if (app.trace) {
-            // 兼容不同的key
-            const traceId = ctx.headers.traceId || ctx.query.traceId;
-            const requestId = ctx.headers.requestId || ctx.query.requestId;
+            // some key
+            const traceId = <string>ctx.headers.traceId ?? <string>ctx.query.traceId;
+            const requestId = <string>ctx.headers.requestId ?? <string>ctx.query.requestId;
 
-            // 来源traceId
-            const parentId = traceId || requestId;
-            // 当前traceId，如果来源traceId不为空，则复用来源traceId
-            currTraceId = parentId || `koatty-${uuid4()}`;
-            app.trace.set('parentId', parentId || '');
+            // traceId
+            const parentId = traceId ?? requestId;
+            // current traceId
+            currTraceId = parentId ?? `koatty-${uuid()}`;
+            app.trace.set('parentId', parentId ?? '');
             app.trace.set('traceId', currTraceId);
             app.trace.set('ctx', ctx);
             ctx.set('X-Trace-Id', currTraceId);
         }
-
         // response finish
         ctx.res.once('finish', () => {
             const { method, startTime, status, originalPath } = ctx;
             const now = Date.now();
-            if (currTraceId) {
-                const duration = (now - startTime) || 0;
-                logger.Write("TRACE", {
-                    action: method,
-                    code: status,
-                    startTime,
-                    duration,
-                    traceId: currTraceId,
-                    endTime: now,
-                    cmd: originalPath || '/',
-                });
-            }
-            logger[(ctx.status >= 400 ? 'Error' : 'Info')](`${method} ${status} ${originalPath || '/'}`);
+            const cmd = originalPath ?? '/';
+            const msg = `{"action":"${method}","code":"${status}","startTime":"${startTime}","duration":"${(now - startTime) ?? 0}","traceId":"${currTraceId}","endTime":"${now}","path":"${cmd}"}`;
+            Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
             ctx = null;
         });
+
         // try /catch
         const response: any = ctx.res;
         try {
             response.timeout = null;
             // promise.race
             const res = await Promise.race([new Promise((resolve, reject) => {
-                const err: any = new Error('Request Timeout');
-                err.status = 408;
-                response.timeout = setTimeout(reject, options.timeout, err);
+                response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
                 return;
             }), next()]);
+
             if (res && ctx.status !== 304) {
-                ctx.body = res;
+                ctx.body = res ?? "";
             }
-            if (ctx.body !== undefined && ctx.status === 404) {
-                ctx.status = 200;
-            }
-            // error
-            if (ctx.status >= 400) {
-                ctx.throw(ctx.status, ctx.url);
-            }
+
             return null;
-        } catch (err) {
-            return catcher(app, ctx, options, err);
+        } catch (err: any) {
+            // skip prevent errors
+            if (isPrevent(err)) {
+                return null;
+            }
+            return catcher(app, ctx, err);
         } finally {
             clearTimeout(response.timeout);
         }
-
     };
 }
+
+/**
+ * error catcher
+ *
+ * @param {Koatty} app
+ * @param {KoattyContext} ctx
+ * @param {Error} err
+ * @returns {*}  
+ */
+function catcher(app: Koatty, ctx: KoattyContext, err: Exception) {
+    try {
+        let body: any = ctx.body;
+        if (!body) {
+            body = err.message ?? ctx.message ?? "";
+        }
+        ctx.status = ctx.status ?? 500;
+        if (isException(err)) {
+            err.message = body;
+            ctx.status = err.status;
+            return responseBody(app, ctx, err);
+        }
+        Logger.Error(err);
+        return ctx.res.end(body);
+    } catch (error) {
+        Logger.Error(error);
+        return null;
+    }
+}
+
+/**
+ *
+ *
+ * @param {Koatty} app
+ * @param {KoattyContext} ctx
+ * @returns {*}  
+ */
+function responseBody(app: Koatty, ctx: KoattyContext, err: Exception) {
+    const contentType = parseResContentType(ctx);
+    // accepted types
+    switch (contentType) {
+        case 'json':
+            return jsonRend(ctx, err);
+            break;
+        case 'html':
+            return htmlRend(ctx, err);
+            break;
+        case 'text':
+        default:
+            return textRend(ctx, err);
+            break;
+    }
+}
+
+/**
+ * Parse response type
+ *
+ * @param {KoattyContext} ctx
+ * @returns {*}  
+ */
+function parseResContentType(ctx: KoattyContext) {
+    let type = '';
+    if (ctx.request.type === "") {
+        type = <string>ctx.accepts('json', 'html', 'text');
+    } else {
+        type = <string>ctx.request.is('json', 'html', 'text');
+    }
+    if (type) {
+        return type;
+    }
+    return '';
+}
+
+/**
+ *
+ *
+ * @param {KoattyContext} ctx
+ * @param {Exception} err
+ * @returns {*}  
+ */
+function htmlRend(ctx: KoattyContext, err: Exception) {
+    let contentType = 'text/html';
+    if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
+        contentType = `${contentType}; charset=${ctx.encoding}`;
+    }
+    ctx.type = contentType;
+
+    const { code, message } = err;
+    const body = `<!DOCTYPE html><html><head><title>Error - ${code ?? 1}</title><meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <style>body {padding: 50px 80px;font: 14px 'Microsoft YaHei','微软雅黑',Helvetica,Sans-serif;}h1, h2 {margin: 0;padding: 10px 0;}h1 {font-size: 2em;}h2 {font-size: 1.2em;font-weight: 200;color: #aaa;}pre {font-size: .8em;}</style>
+    </head><body><div id="error"><h1>Error</h1><p>Oops! Your visit is rejected!</p><h2>Message:</h2><pre><code>${Helper.escapeHtml(message) ?? ""}</code></pre></div></body></html>`;
+    ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
+    return ctx.res.end(body);
+}
+
+/**
+ *
+ *
+ * @param {KoattyContext} ctx
+ * @param {Exception} err
+ * @returns {*}  
+ */
+function jsonRend(ctx: KoattyContext, err: Exception) {
+    let contentType = 'application/json';
+    if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
+        contentType = `${contentType}; charset=${ctx.encoding}`;
+    }
+    ctx.type = contentType;
+    const { code, message } = err;
+    const body = `{"code":${code ?? 1},"message":"${message ?? ""}"}`;
+    ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
+    return ctx.res.end(body);
+}
+
+/**
+ * 
+ *
+ * @param {KoattyContext} ctx
+ * @param {Exception} err
+ * @returns {*}  
+ */
+function textRend(ctx: KoattyContext, err: Exception) {
+    let contentType = 'text/plain';
+    if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
+        contentType = `${contentType}; charset=${ctx.encoding}`;
+    }
+    ctx.type = contentType;
+    const { code, message } = err;
+    const body = `{"code":${code ?? 1},"message":"${message ?? ""}"}`;
+    ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
+    return ctx.res.end(body);
+}
+
