@@ -1,6 +1,6 @@
 {
     "name": "koatty_trace",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "description": "Full link tracking and error interception for koatty.",
     "scripts": {
         "build": "del-cli --force dist && tsc",
@@ -49,9 +49,9 @@
         "@commitlint/cli": "^12.x.x",
         "@commitlint/config-conventional": "^12.x.x",
         "@types/cls-hooked": "^4.x.x",
-        "@types/koa": "^2.13.3",
+        "@types/koa": "^2.x.x",
         "@types/node": "^14.x.x",
-        "@types/uuid": "^8.3.0",
+        "@types/uuid": "^8.x.x",
         "@typescript-eslint/eslint-plugin": "^4.x.x",
         "@typescript-eslint/parser": "^4.x.x",
         "conventional-changelog-cli": "^2.x.x",
@@ -70,7 +70,7 @@
     },
     "dependencies": {
         "cls-hooked": "^4.2.2",
-        "koatty": "^3.2.12",
+        "koatty": "^3.x.x",
         "uuid": "^8.3.2"
     },
     "husky": {
