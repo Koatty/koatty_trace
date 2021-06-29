@@ -1,6 +1,6 @@
 {
     "name": "koatty_trace",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "description": "Full link tracking and error interception for koatty.",
     "scripts": {
         "build": "del-cli --force dist && tsc",
@@ -14,7 +14,7 @@
     "main": "./dist/index.js",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/thinkkoa/koatty_trace.git"
+        "url": "git+https://github.com/koatty/koatty_trace.git"
     },
     "keywords": [
         "web",
@@ -36,9 +36,9 @@
     },
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/thinkkoa/koatty_trace/issues"
+        "url": "https://github.com/koatty/koatty_trace/issues"
     },
-    "homepage": "https://github.com/thinkkoa/koatty_trace",
+    "homepage": "https://github.com/koatty/koatty_trace",
     "maintainers": [
         {
             "name": "richenlin",
@@ -70,7 +70,8 @@
     },
     "dependencies": {
         "cls-hooked": "^4.2.2",
-        "koatty": "^3.x.x",
+        "koatty_container": "^1.x.x",
+        "koatty_lib": "^1.x.x",
         "uuid": "^8.3.2"
     },
     "husky": {
