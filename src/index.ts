@@ -2,14 +2,16 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-06-28 16:43:20
+ * @LastEditTime: 2021-06-29 16:41:16
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
 import { IncomingMessage, ServerResponse } from 'http';
 import { Http2ServerRequest, Http2ServerResponse } from 'http2';
 import { Namespace, createNamespace } from "cls-hooked";
-import { Koatty, KoattyContext, Helper, Logger } from 'koatty';
+import * as Helper from "koatty_lib";
+import { Application, Context } from "koatty_container";
+import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isException, isPrevent } from './Exception';
 import { v4 as uuid } from "uuid";
 // export
@@ -21,7 +23,7 @@ export * from "./Exception";
  * @export
  * @returns {*}  
  */
-export function TraceServerSetup(app: Koatty): Namespace {
+export function TraceServerSetup(app: Application): Namespace {
     const traceCls = createNamespace('koatty-debug-trace');
     // app.trace = traceCls;
     Helper.define(app, 'trace', traceCls);
@@ -37,7 +39,7 @@ export function TraceServerSetup(app: Koatty): Namespace {
  * @param {boolean} openTrace enable full stack debug & trace
  */
 export function TraceBinding(
-    app: Koatty,
+    app: Application,
     req: IncomingMessage | Http2ServerRequest,
     res: ServerResponse | Http2ServerResponse,
     openTrace: boolean,
@@ -63,11 +65,11 @@ export function TraceBinding(
  * @param {Koatty} app
  * @returns {*}  
  */
-export function TraceHandler(app: Koatty) {
+export function TraceHandler(app: Application) {
     const timeout = (app.config('http_timeout') ?? 10) * 1000;
     const encoding = app.config('encoding') ?? 'utf-8';
 
-    return async function (ctx: KoattyContext, next: Function): Promise<any> {
+    return async function (ctx: Context, next: Function): Promise<any> {
         // set ctx start time
         Helper.define(ctx, 'startTime', Date.now());
         // http version
@@ -142,7 +144,7 @@ export function TraceHandler(app: Koatty) {
  * @param {Error} err
  * @returns {*}  
  */
-function catcher(app: Koatty, ctx: KoattyContext, err: Exception) {
+function catcher(app: Application, ctx: Context, err: Exception) {
     try {
         let body: any = ctx.body;
         if (!body) {
@@ -169,7 +171,7 @@ function catcher(app: Koatty, ctx: KoattyContext, err: Exception) {
  * @param {KoattyContext} ctx
  * @returns {*}  
  */
-function responseBody(app: Koatty, ctx: KoattyContext, err: Exception) {
+function responseBody(app: Application, ctx: Context, err: Exception) {
     const contentType = parseResContentType(ctx);
     // accepted types
     switch (contentType) {
@@ -192,7 +194,7 @@ function responseBody(app: Koatty, ctx: KoattyContext, err: Exception) {
  * @param {KoattyContext} ctx
  * @returns {*}  
  */
-function parseResContentType(ctx: KoattyContext) {
+function parseResContentType(ctx: Context) {
     let type = '';
     if (ctx.request.type === "") {
         type = <string>ctx.accepts('json', 'html', 'text');
@@ -212,7 +214,7 @@ function parseResContentType(ctx: KoattyContext) {
  * @param {Exception} err
  * @returns {*}  
  */
-function htmlRend(ctx: KoattyContext, err: Exception) {
+function htmlRend(ctx: Context, err: Exception) {
     let contentType = 'text/html';
     if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
         contentType = `${contentType}; charset=${ctx.encoding}`;
@@ -234,7 +236,7 @@ function htmlRend(ctx: KoattyContext, err: Exception) {
  * @param {Exception} err
  * @returns {*}  
  */
-function jsonRend(ctx: KoattyContext, err: Exception) {
+function jsonRend(ctx: Context, err: Exception) {
     let contentType = 'application/json';
     if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
         contentType = `${contentType}; charset=${ctx.encoding}`;
@@ -253,7 +255,7 @@ function jsonRend(ctx: KoattyContext, err: Exception) {
  * @param {Exception} err
  * @returns {*}  
  */
-function textRend(ctx: KoattyContext, err: Exception) {
+function textRend(ctx: Context, err: Exception) {
     let contentType = 'text/plain';
     if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
         contentType = `${contentType}; charset=${ctx.encoding}`;

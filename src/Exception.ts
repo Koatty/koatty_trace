@@ -5,7 +5,7 @@
  * @ version: 2020-12-15 11:49:15
  */
 
-import { Helper } from "koatty";
+import * as Helper from "koatty_lib";
 
 const PREVENT_NEXT_PROCESS = 'PREVENT_NEXT_PROCESS';
 /**
