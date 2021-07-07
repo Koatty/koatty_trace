@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-06-29 16:41:16
+ * @LastEditTime: 2021-07-07 18:08:22
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -66,8 +66,8 @@ export function TraceBinding(
  * @returns {*}  
  */
 export function TraceHandler(app: Application) {
-    const timeout = (app.config('http_timeout') ?? 10) * 1000;
-    const encoding = app.config('encoding') ?? 'utf-8';
+    const timeout = (app.config('http_timeout') || 10) * 1000;
+    const encoding = app.config('encoding') || 'utf-8';
 
     return async function (ctx: Context, next: Function): Promise<any> {
         // set ctx start time
@@ -87,13 +87,13 @@ export function TraceHandler(app: Application) {
         let currTraceId = '';
         if (app.trace) {
             // some key
-            const traceId = <string>ctx.headers.traceId ?? <string>ctx.query.traceId;
-            const requestId = <string>ctx.headers.requestId ?? <string>ctx.query.requestId;
+            const traceId = <string>ctx.headers.traceId || <string>ctx.query.traceId;
+            const requestId = <string>ctx.headers.requestId || <string>ctx.query.requestId;
 
             // traceId
-            const parentId = traceId ?? requestId;
+            const parentId = traceId || requestId;
             // current traceId
-            currTraceId = parentId ?? `koatty-${uuid()}`;
+            currTraceId = parentId || `koatty-${uuid()}`;
             app.trace.set('parentId', parentId ?? '');
             app.trace.set('traceId', currTraceId);
             app.trace.set('ctx', ctx);
@@ -103,8 +103,8 @@ export function TraceHandler(app: Application) {
         ctx.res.once('finish', () => {
             const { method, startTime, status, originalPath } = ctx;
             const now = Date.now();
-            const cmd = originalPath ?? '/';
-            const msg = `{"action":"${method}","code":"${status}","startTime":"${startTime}","duration":"${(now - startTime) ?? 0}","traceId":"${currTraceId}","endTime":"${now}","path":"${cmd}"}`;
+            const cmd = originalPath || '/';
+            const msg = `{"action":"${method}","code":"${status}","startTime":"${startTime}","duration":"${(now - startTime) || 0}","traceId":"${currTraceId}","endTime":"${now}","path":"${cmd}"}`;
             Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
             ctx = null;
         });
@@ -148,9 +148,9 @@ function catcher(app: Application, ctx: Context, err: Exception) {
     try {
         let body: any = ctx.body;
         if (!body) {
-            body = err.message ?? ctx.message ?? "";
+            body = err.message || ctx.message || "";
         }
-        ctx.status = ctx.status ?? 500;
+        ctx.status = ctx.status || 500;
         if (isException(err)) {
             err.message = body;
             ctx.status = err.status;
@@ -222,7 +222,7 @@ function htmlRend(ctx: Context, err: Exception) {
     ctx.type = contentType;
 
     const { code, message } = err;
-    const body = `<!DOCTYPE html><html><head><title>Error - ${code ?? 1}</title><meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    const body = `<!DOCTYPE html><html><head><title>Error - ${code || 1}</title><meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <style>body {padding: 50px 80px;font: 14px 'Microsoft YaHei','微软雅黑',Helvetica,Sans-serif;}h1, h2 {margin: 0;padding: 10px 0;}h1 {font-size: 2em;}h2 {font-size: 1.2em;font-weight: 200;color: #aaa;}pre {font-size: .8em;}</style>
     </head><body><div id="error"><h1>Error</h1><p>Oops! Your visit is rejected!</p><h2>Message:</h2><pre><code>${Helper.escapeHtml(message) ?? ""}</code></pre></div></body></html>`;
     ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
@@ -243,7 +243,7 @@ function jsonRend(ctx: Context, err: Exception) {
     }
     ctx.type = contentType;
     const { code, message } = err;
-    const body = `{"code":${code ?? 1},"message":"${message ?? ""}"}`;
+    const body = `{"code":${code || 1},"message":"${message ?? ""}"}`;
     ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
     return ctx.res.end(body);
 }
@@ -262,7 +262,7 @@ function textRend(ctx: Context, err: Exception) {
     }
     ctx.type = contentType;
     const { code, message } = err;
-    const body = `{"code":${code ?? 1},"message":"${message ?? ""}"}`;
+    const body = `{"code":${code || 1},"message":"${message ?? ""}"}`;
     ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
     return ctx.res.end(body);
 }
