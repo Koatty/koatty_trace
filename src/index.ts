@@ -2,149 +2,254 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-07-07 18:08:22
+ * @LastEditTime: 2021-11-18 15:39:52
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
-import { IncomingMessage, ServerResponse } from 'http';
-import { Http2ServerRequest, Http2ServerResponse } from 'http2';
-import { Namespace, createNamespace } from "cls-hooked";
+import * as Koa from 'koa';
+import { inspect } from 'util';
+import { Koatty, KoattyContext } from "koatty_core";
 import * as Helper from "koatty_lib";
-import { Application, Context } from "koatty_container";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, isException, isPrevent } from './Exception';
-import { v4 as uuid } from "uuid";
-// export
-export * from "./Exception";
+import { Exception, isException, isPrevent } from 'koatty_exception';
+import { AsyncLocalStorage, AsyncResource } from "async_hooks";
+import { wrapEmitter } from './wrap';
+// AsyncLocalStorage
+const als = new AsyncLocalStorage();
 
 /**
- * Create Namespace
+ * TraceOptions
  *
  * @export
- * @returns {*}  
+ * @interface TraceOptions
  */
-export function TraceServerSetup(app: Application): Namespace {
-    const traceCls = createNamespace('koatty-debug-trace');
-    // app.trace = traceCls;
-    Helper.define(app, 'trace', traceCls);
-    return traceCls;
+export interface TraceOptions {
+    HeaderName: string;
+    IdFactory: any;
 }
 
-/**
- * debug/trace server handle binding
- *
- * @param {Koatty} app  app instance
- * @param {IncomingMessage | Http2ServerRequest} req  request
- * @param {ServerResponse | Http2ServerResponse} res  response
- * @param {boolean} openTrace enable full stack debug & trace
+/** 
+ * defaultOptions
  */
-export function TraceBinding(
-    app: Application,
-    req: IncomingMessage | Http2ServerRequest,
-    res: ServerResponse | Http2ServerResponse,
-    openTrace: boolean,
-) {
-    // if enable full stack debug & trace
-    if (openTrace) {
-        app.trace.run(() => {
-            // event binding
-            app.trace.bindEmitter(req);
-            app.trace.bindEmitter(res);
-            // execute app.callback
-            app.callback()(req, res);
-        });
-    } else {
-        app.callback()(req, res);
+const defaultOptions = {
+    HeaderName: 'X-Request-Id',
+    IdFactory: (key = "") => {
+        return Symbol(key).toString();
+    },
+};
+
+/**
+ * Trace middleware
+ *
+ * @param {TraceOptions} options
+ * @param {Koatty} app
+ * @returns {*}  {Koa.Middleware}
+ */
+export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
+    options = { ...defaultOptions, ...options };
+    const headerName = options.HeaderName.toLowerCase();
+    const protocol = app.config("protocol") || 'http';
+    const timeout = (app.config('http_timeout') || 10) * 1000;
+    const encoding = app.config('encoding') || 'utf-8';
+    const openTrace = app.config("open_trace") || false;
+    return async (ctx: KoattyContext, next: Koa.Next) => {
+        let currTraceId = '';
+        if (openTrace) {
+            if (protocol === "grpc") {
+                const request: any = ctx.getMetaData("_body") || {};
+                currTraceId = `${ctx.getMetaData(headerName)}` || <string>request[headerName];
+                ctx.setMetaData(options.HeaderName, currTraceId);
+            } else {
+                currTraceId = <string>ctx.headers[headerName] || <string>ctx.query[headerName];
+                ctx.set(options.HeaderName, currTraceId);
+            }
+            currTraceId = currTraceId || `koatty-${options.IdFactory()}`;
+            return als.run(currTraceId, () => {
+                const asyncResource = new AsyncResource('koatty-tracer');
+                wrapEmitter(ctx.req, asyncResource);
+                wrapEmitter(ctx.res, asyncResource);
+                if (protocol === "grpc") {
+                    return grpcHandler(ctx, next, { timeout, currTraceId, encoding });
+                } else {
+                    return httpHandler(ctx, next, { timeout, currTraceId });
+                }
+            });
+        }
+
+        if (protocol === "grpc") {
+            return grpcHandler(ctx, next, { timeout, currTraceId, encoding });
+        } else if (protocol === "ws" || protocol === "wss") {
+            return wsHandler(ctx, next, { timeout, currTraceId, encoding });
+        } else {
+            return httpHandler(ctx, next, { timeout, currTraceId });
+        }
+    }
+}
+/**
+ * grpcHandler
+ *
+ * @param {Koatty} app
+ * @returns {*}  
+ */
+async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any): Promise<any> {
+    const timeout = ext.timeout || 10000;
+    // set ctx start time
+    const startTime = Date.now();
+    ctx.setMetaData("startTime", `${startTime}`);
+
+    ctx.call.on("end", () => {
+        const now = Date.now();
+        const originalPath = ctx.getMetaData("originalPath");
+        const startTime = ctx.getMetaData("startTime");
+        const msg = `{"code":"${ctx.status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
+        Logger[(ctx.status >= 1 ? 'Error' : 'Info')](msg);
+        ctx = null;
+    });
+
+    // try /catch
+    const response: any = {};
+    try {
+        response.timeout = null;
+        // promise.race
+        const res = await Promise.race([new Promise((resolve, reject) => {
+            response.timeout = setTimeout(reject, timeout, new Exception('Deadline exceeded', 1, 4));
+            return;
+        }), next()]);
+        return res ?? ctx.body ?? "";
+    } catch (err: any) {
+        // skip prevent errors
+        if (isPrevent(err)) {
+            return null;
+        }
+        Logger.Error(err);
+        return null;
+    } finally {
+        clearTimeout(response.timeout);
     }
 }
 
 /**
- * Trace middleware handler
+ * httpHandler
  *
- * @export
  * @param {Koatty} app
  * @returns {*}  
  */
-export function TraceHandler(app: Application) {
-    const timeout = (app.config('http_timeout') || 10) * 1000;
-    const encoding = app.config('encoding') || 'utf-8';
+async function httpHandler(ctx: KoattyContext, next: Function, ext?: any): Promise<any> {
+    const timeout = ext.timeout || 10000;
 
-    return async function (ctx: Context, next: Function): Promise<any> {
-        // set ctx start time
-        Helper.define(ctx, 'startTime', Date.now());
-        // http version
-        Helper.define(ctx, 'version', ctx.req.httpVersion);
-        // originalPath
-        Helper.define(ctx, 'originalPath', ctx.path);
-        // Encoding
-        ctx.encoding = encoding;
-        // auto send security header
-        ctx.set('X-Powered-By', 'Koatty');
-        ctx.set('X-Content-Type-Options', 'nosniff');
-        ctx.set('X-XSS-Protection', '1;mode=block');
+    // set ctx start time
+    Helper.define(ctx, 'startTime', Date.now());
+    // http version
+    Helper.define(ctx, 'version', ctx.req.httpVersion);
+    // originalPath
+    Helper.define(ctx, 'originalPath', ctx.path);
+    // Encoding
+    ctx.encoding = ext.encoding;
+    // auto send security header
+    ctx.set('X-Powered-By', 'Koatty');
+    ctx.set('X-Content-Type-Options', 'nosniff');
+    ctx.set('X-XSS-Protection', '1;mode=block');
 
-        // if enable full stack debug & trace，created traceId
-        let currTraceId = '';
-        if (app.trace) {
-            // some key
-            const traceId = <string>ctx.headers.traceId || <string>ctx.query.traceId;
-            const requestId = <string>ctx.headers.requestId || <string>ctx.query.requestId;
+    // response finish
+    ctx.res.once('finish', () => {
+        const { method, startTime, status, originalPath } = ctx;
+        const now = Date.now();
+        const cmd = originalPath || '/';
+        const msg = `{"action":"${method}","code":"${status}","startTime":"${startTime}","duration":"${(now - startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${cmd}"}`;
+        Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
+        ctx = null;
+    });
 
-            // traceId
-            const parentId = traceId || requestId;
-            // current traceId
-            currTraceId = parentId || `koatty-${uuid()}`;
-            app.trace.set('parentId', parentId ?? '');
-            app.trace.set('traceId', currTraceId);
-            app.trace.set('ctx', ctx);
-            ctx.set('X-Trace-Id', currTraceId);
+    // try /catch
+    const response: any = ctx.res;
+    try {
+        response.timeout = null;
+        // promise.race
+        const res = await Promise.race([new Promise((resolve, reject) => {
+            response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
+            return;
+        }), next()]);
+
+        if (res && ctx.status !== 304) {
+            ctx.body = res ?? "";
         }
-        // response finish
-        ctx.res.once('finish', () => {
-            const { method, startTime, status, originalPath } = ctx;
-            const now = Date.now();
-            const cmd = originalPath || '/';
-            const msg = `{"action":"${method}","code":"${status}","startTime":"${startTime}","duration":"${(now - startTime) || 0}","traceId":"${currTraceId}","endTime":"${now}","path":"${cmd}"}`;
-            Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-            ctx = null;
-        });
 
-        // try /catch
-        const response: any = ctx.res;
-        try {
-            response.timeout = null;
-            // promise.race
-            const res = await Promise.race([new Promise((resolve, reject) => {
-                response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
-                return;
-            }), next()]);
-
-            if (res && ctx.status !== 304) {
-                ctx.body = res ?? "";
-            }
-
+        return null;
+    } catch (err: any) {
+        // skip prevent errors
+        if (isPrevent(err)) {
             return null;
-        } catch (err: any) {
-            // skip prevent errors
-            if (isPrevent(err)) {
-                return null;
-            }
-            return catcher(app, ctx, err);
-        } finally {
-            clearTimeout(response.timeout);
         }
-    };
+        return catcher(ctx, err);
+    } finally {
+        clearTimeout(response.timeout);
+    }
+
+}
+/**
+ * wsHandler
+ *
+ * @param {Koatty} app
+ * @returns {*}  
+ */
+async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): Promise<any> {
+    const timeout = ext.timeout || 10000;
+
+    // set ctx start time
+    Helper.define(ctx, 'startTime', Date.now());
+    // http version
+    Helper.define(ctx, 'version', ctx.req.httpVersion);
+    // originalPath
+    Helper.define(ctx, 'originalPath', ctx.path);
+    // Encoding
+    ctx.encoding = ext.encoding;
+    // auto send security header
+    ctx.set('X-Powered-By', 'Koatty');
+    ctx.set('X-Content-Type-Options', 'nosniff');
+    ctx.set('X-XSS-Protection', '1;mode=block');
+
+    // response finish
+    ctx.res.once('finish', () => {
+        const { method, startTime, status, originalPath } = ctx;
+        const now = Date.now();
+        const cmd = originalPath || '/';
+        const msg = `{"action":"${method}","code":"${status}","startTime":"${startTime}","duration":"${(now - startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${cmd}"}`;
+        Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
+        ctx = null;
+    });
+
+    // try /catch
+    const response: any = ctx.res;
+    try {
+        response.timeout = null;
+        // promise.race
+        const res = await Promise.race([new Promise((resolve, reject) => {
+            response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
+            return;
+        }), next()]);
+
+        return inspect(res ?? ctx.body ?? "");
+    } catch (err: any) {
+        // skip prevent errors
+        if (isPrevent(err)) {
+            return "";
+        }
+        Logger.Error(err);
+        return "";
+    } finally {
+        clearTimeout(response.timeout);
+    }
+
 }
 
 /**
  * error catcher
  *
- * @param {Koatty} app
  * @param {KoattyContext} ctx
  * @param {Error} err
  * @returns {*}  
  */
-function catcher(app: Application, ctx: Context, err: Exception) {
+function catcher(ctx: KoattyContext, err: Exception) {
     try {
         let body: any = ctx.body;
         if (!body) {
@@ -154,7 +259,7 @@ function catcher(app: Application, ctx: Context, err: Exception) {
         if (isException(err)) {
             err.message = body;
             ctx.status = err.status;
-            return responseBody(app, ctx, err);
+            return responseBody(ctx, err);
         }
         Logger.Error(err);
         return ctx.res.end(body);
@@ -167,11 +272,10 @@ function catcher(app: Application, ctx: Context, err: Exception) {
 /**
  *
  *
- * @param {Koatty} app
  * @param {KoattyContext} ctx
  * @returns {*}  
  */
-function responseBody(app: Application, ctx: Context, err: Exception) {
+function responseBody(ctx: KoattyContext, err: Exception) {
     const contentType = parseResContentType(ctx);
     // accepted types
     switch (contentType) {
@@ -194,7 +298,7 @@ function responseBody(app: Application, ctx: Context, err: Exception) {
  * @param {KoattyContext} ctx
  * @returns {*}  
  */
-function parseResContentType(ctx: Context) {
+function parseResContentType(ctx: KoattyContext) {
     let type = '';
     if (ctx.request.type === "") {
         type = <string>ctx.accepts('json', 'html', 'text');
@@ -214,7 +318,7 @@ function parseResContentType(ctx: Context) {
  * @param {Exception} err
  * @returns {*}  
  */
-function htmlRend(ctx: Context, err: Exception) {
+function htmlRend(ctx: KoattyContext, err: Exception) {
     let contentType = 'text/html';
     if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
         contentType = `${contentType}; charset=${ctx.encoding}`;
@@ -236,7 +340,7 @@ function htmlRend(ctx: Context, err: Exception) {
  * @param {Exception} err
  * @returns {*}  
  */
-function jsonRend(ctx: Context, err: Exception) {
+function jsonRend(ctx: KoattyContext, err: Exception) {
     let contentType = 'application/json';
     if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
         contentType = `${contentType}; charset=${ctx.encoding}`;
@@ -255,7 +359,7 @@ function jsonRend(ctx: Context, err: Exception) {
  * @param {Exception} err
  * @returns {*}  
  */
-function textRend(ctx: Context, err: Exception) {
+function textRend(ctx: KoattyContext, err: Exception) {
     let contentType = 'text/plain';
     if (ctx.encoding !== false && contentType.indexOf('charset=') === -1) {
         contentType = `${contentType}; charset=${ctx.encoding}`;
