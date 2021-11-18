@@ -1,6 +1,6 @@
 {
     "name": "koatty_trace",
-    "version": "1.4.13",
+    "version": "1.4.14",
     "description": "Full link tracking and error interception for koatty.",
     "scripts": {
         "build": "del-cli --force dist && tsc",
