@@ -35,7 +35,7 @@
         "name": "richenlin",
         "email": "richenlin@gmail.com"
     },
-    "license": "MIT",
+    "license": "BSD-3-Clause",
     "bugs": {
         "url": "https://github.com/koatty/koatty_trace/issues"
     },
