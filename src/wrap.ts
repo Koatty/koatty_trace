@@ -3,12 +3,14 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-18 10:44:51
- * @LastEditTime: 2021-11-18 11:02:12
+ * @LastEditTime: 2021-11-19 00:21:44
  */
 const isWrappedSymbol = Symbol('cls-tracer-is-wrapped')
 const wrappedSymbol = Symbol('cls-tracer-wrapped-function')
-import { AsyncResource } from "async_hooks";
+import { AsyncLocalStorage, AsyncResource } from "async_hooks";
 
+// AsyncLocalStorage
+export const asyncLocalStorage = new AsyncLocalStorage();
 
 const addMethods = [
   'on',
@@ -20,6 +22,17 @@ const removeMethods = [
   'off',
   'removeListener'
 ]
+
+/**
+ * Create AsyncResource
+ *
+ * @export
+ * @param {string} [key='koatty-tracer']
+ * @returns {*}  {AsyncResource}
+ */
+export function createAsyncResource(key = 'koatty-tracer'): AsyncResource {
+  return new AsyncResource(key);
+}
 
 /**
  * Wraps EventEmitter listener registration methods of the
