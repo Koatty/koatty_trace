@@ -3,14 +3,12 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2021-11-19 15:43:57
+ * @LastEditTime: 2021-11-23 12:46:46
  */
 import { KoattyContext } from "koatty_core";
 import { Exception, isPrevent } from "koatty_exception";
 import * as Helper from "koatty_lib";
-import { DefaultLogger as Logger } from "koatty_logger";
 import { inspect } from "util";
-
 
 /**
  * wsHandler
@@ -38,7 +36,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
     const listener = () => {
         const now = Date.now();
         const msg = `{"action":"${ext.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
-        Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
+        ctx.logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
         // ctx = null;
     }
     ctx.websocket.addListener("afterSend", listener);
@@ -46,7 +44,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
 
     // close event
     ctx.websocket.once("close", (socket: any, code: number, reason: Buffer) => {
-        Logger.Error("websocket closed: ", reason.toString());
+        ctx.logger.Error("websocket closed: ", reason.toString());
         // ctx = null;
     });
 
@@ -69,7 +67,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
             ctx.websocket.send(inspect(ctx.body || ""), () => ctx.websocket.emit('afterSend'));
             return null;
         }
-        Logger.Error(err);
+        ctx.logger.Error(err);
         ctx.status = err.status ?? (ctx.status || 2);
         ctx.websocket.emit('error');
         return null;

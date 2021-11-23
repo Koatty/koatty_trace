@@ -3,12 +3,11 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2021-11-19 15:44:16
+ * @LastEditTime: 2021-11-23 12:46:07
  */
 import { KoattyContext } from "koatty_core";
 import { Exception, HttpStatusCode, isException, isPrevent } from "koatty_exception";
 import * as Helper from "koatty_lib";
-import { DefaultLogger as Logger } from "koatty_logger";
 
 /**
  * httpHandler
@@ -35,7 +34,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
     ctx.res.once('finish', () => {
         const now = Date.now();
         const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
-        Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
+        ctx.logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
         // ctx = null;
     });
 
@@ -85,10 +84,10 @@ function catcher(ctx: KoattyContext, err: Exception) {
             ctx.status = <HttpStatusCode>err.status;
             return responseBody(ctx, err);
         }
-        Logger.Error(err);
+        ctx.logger.Error(err);
         return ctx.res.end(body);
     } catch (error) {
-        Logger.Error(error);
+        ctx.logger.Error(error);
         return null;
     }
 }
