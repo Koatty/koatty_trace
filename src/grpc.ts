@@ -3,12 +3,13 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2021-11-23 12:46:40
+ * @LastEditTime: 2021-11-23 14:20:27
  */
 
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { StatusBuilder } from "@grpc/grpc-js";
+import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, GrpcStatusCodeMap, HttpStatusCode, isException, isPrevent, StatusCodeConvert } from "koatty_exception";
 
 /**
@@ -32,7 +33,7 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
         const startTime = ctx.getMetaData("startTime");
         const status = StatusCodeConvert(ctx.status);
         const msg = `{"action":"${ext.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
-        ctx.logger[(status > 0 ? 'Error' : 'Info')](msg);
+        Logger[(status > 0 ? 'Error' : 'Info')](msg);
         // ctx = null;
     });
 
@@ -85,12 +86,12 @@ function responseError(ctx: KoattyContext, err: Exception | Error) {
         } else {
             errObj = new StatusBuilder().withCode(code).build();
         }
-        ctx.logger.Error(errObj);
+        Logger.Error(errObj);
         ctx.rpcCallback(errObj, null);
         return;
     } catch (error) {
         errObj = new StatusBuilder().withCode(2).build();
-        ctx.logger.Error(errObj);
+        Logger.Error(errObj);
         ctx.rpcCallback(errObj, null);
         return;
     }
