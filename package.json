@@ -1,6 +1,6 @@
 {
     "name": "koatty_trace",
-    "version": "1.4.22",
+    "version": "1.4.24",
     "description": "Full link tracking and error interception for koatty.",
     "scripts": {
         "build": "del-cli --force dist && tsc",
@@ -26,7 +26,7 @@
         "restful",
         "agile",
         "koatty_trace",
-        "thinkkoa"
+        "koatty"
     ],
     "engines": {
         "node": ">10.0.0"
