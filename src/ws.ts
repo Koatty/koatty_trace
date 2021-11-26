@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2021-11-23 14:21:44
+ * @LastEditTime: 2021-11-26 15:18:59
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -45,7 +45,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
 
     // close event
     ctx.websocket.once("close", (socket: any, code: number, reason: Buffer) => {
-        Logger.Error("websocket closed: ", reason.toString());
+        Logger.Error("websocket closed: ", Helper.toString(reason));
         // ctx = null;
     });
 
