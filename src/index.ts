@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-11-26 16:02:40
+ * @LastEditTime: 2021-11-26 16:31:03
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -61,7 +61,6 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
     return async (ctx: KoattyContext, next: Koa.Next) => {
         // 
         const respWapper = (currTraceId: string) => {
-            ctx.protocol = protocol;
             // metadata
             ctx.setMetaData(options.HeaderName, currTraceId);
             if (protocol === "grpc") {
