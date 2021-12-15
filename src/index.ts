@@ -2,11 +2,12 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-11-26 16:31:03
+ * @LastEditTime: 2021-12-15 17:26:50
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
 import * as Koa from 'koa';
+import { v4 as uuidv4 } from "uuid";
 import { Koatty, KoattyContext } from "koatty_core";
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
 import { httpHandler } from './http';
@@ -39,9 +40,7 @@ export interface TraceOptions {
  */
 const defaultOptions = {
     HeaderName: 'X-Request-Id',
-    IdFactory: (key = "") => {
-        return Symbol(key).toString();
-    },
+    IdFactory: uuidv4,
 };
 
 /**
