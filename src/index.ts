@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-12-15 17:26:50
+ * @LastEditTime: 2021-12-20 09:16:39
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -63,7 +63,7 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
             // metadata
             ctx.setMetaData(options.HeaderName, currTraceId);
             if (protocol === "grpc") {
-                ctx.call.metadata.set(options.HeaderName, currTraceId);
+                ctx.rpc.call.metadata.set(options.HeaderName, currTraceId);
                 return grpcHandler(ctx, next, { timeout, currTraceId, encoding, protocol });
             } else if (protocol === "ws" || protocol === "wss") {
                 // response header

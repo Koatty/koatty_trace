@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2021-11-23 14:20:27
+ * @LastEditTime: 2021-12-20 07:58:07
  */
 
 import * as Helper from "koatty_lib";
@@ -24,17 +24,17 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
     const startTime = Date.now();
     ctx.setMetaData("startTime", `${startTime}`);
 
-    ctx.call.metadata.set('X-Powered-By', 'Koatty');
-    ctx.call.sendMetadata(ctx.call.metadata);
+    ctx.rpc.call.metadata.set('X-Powered-By', 'Koatty');
+    ctx.rpc.call.sendMetadata(ctx.rpc.call.metadata);
 
-    ctx.call.on("end", () => {
+    ctx.rpc.call.on("end", () => {
         const now = Date.now();
         const originalPath = ctx.getMetaData("originalPath");
         const startTime = ctx.getMetaData("startTime");
         const status = StatusCodeConvert(ctx.status);
         const msg = `{"action":"${ext.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
         Logger[(status > 0 ? 'Error' : 'Info')](msg);
-        // ctx = null;
+        ctx = null;
     });
 
     // try /catch
@@ -47,17 +47,17 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
             response.timeout = setTimeout(reject, timeout, new Exception('Deadline exceeded', 1, 4));
             return;
         }), next()]);
-        ctx.rpcCallback(null, res ?? ctx.body ?? "");
+        ctx.rpc.callback(null, res ?? ctx.body ?? "");
         return null;
     } catch (err: any) {
         // skip prevent errors
         if (isPrevent(err)) {
-            ctx.rpcCallback(null, ctx.body ?? "");
+            ctx.rpc.callback(null, ctx.body ?? "");
             return null;
         }
         return responseError(ctx, err);
     } finally {
-        ctx.call.emit("end");
+        ctx.rpc.call.emit("end");
         clearTimeout(response.timeout);
     }
 }
@@ -87,12 +87,12 @@ function responseError(ctx: KoattyContext, err: Exception | Error) {
             errObj = new StatusBuilder().withCode(code).build();
         }
         Logger.Error(errObj);
-        ctx.rpcCallback(errObj, null);
+        ctx.rpc.callback(errObj, null);
         return;
     } catch (error) {
         errObj = new StatusBuilder().withCode(2).build();
         Logger.Error(errObj);
-        ctx.rpcCallback(errObj, null);
+        ctx.rpc.callback(errObj, null);
         return;
     }
 }

@@ -3,10 +3,10 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2021-11-23 14:21:09
+ * @LastEditTime: 2021-12-16 19:58:01
  */
 import { KoattyContext } from "koatty_core";
-import * as Helper from "koatty_lib";
+import { Helper } from "koatty_lib";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, HttpStatusCode, isException, isPrevent } from "koatty_exception";
 
@@ -36,7 +36,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
         const now = Date.now();
         const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
         Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-        // ctx = null;
+        ctx = null;
     });
 
     // try /catch
@@ -105,14 +105,11 @@ function responseBody(ctx: KoattyContext, err: Exception) {
     switch (contentType) {
         case 'json':
             return jsonRend(ctx, err);
-            break;
         case 'html':
             return htmlRend(ctx, err);
-            break;
         case 'text':
         default:
             return textRend(ctx, err);
-            break;
     }
 }
 
