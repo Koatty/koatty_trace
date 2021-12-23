@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2021-12-23 10:50:02
+ * @LastEditTime: 2021-12-23 10:52:30
  */
 
 import * as Helper from "koatty_lib";
@@ -35,7 +35,7 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
         const status = StatusCodeConvert(ctx.status);
         const msg = `{"action":"${ext.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
         Logger[(status > 0 ? 'Error' : 'Info')](msg);
-        ctx = null;
+        // ctx = null;
     };
     ctx.rpc.call.once("end", listener);
     ctx.rpc.call.once("error", listener);
