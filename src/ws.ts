@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2021-12-16 19:58:25
+ * @LastEditTime: 2021-12-23 10:47:59
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -40,8 +40,8 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
         Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
         ctx = null;
     }
-    ctx.websocket.addListener("afterSend", listener);
-    ctx.websocket.addListener("error", listener);
+    ctx.websocket.once("afterSend", listener);
+    ctx.websocket.once("error", listener);
 
     // close event
     ctx.websocket.once("close", (socket: any, code: number, reason: Buffer) => {

@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2021-12-20 07:58:07
+ * @LastEditTime: 2021-12-23 10:50:02
  */
 
 import * as Helper from "koatty_lib";
@@ -27,7 +27,8 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
     ctx.rpc.call.metadata.set('X-Powered-By', 'Koatty');
     ctx.rpc.call.sendMetadata(ctx.rpc.call.metadata);
 
-    ctx.rpc.call.on("end", () => {
+    // event callback
+    const listener = () => {
         const now = Date.now();
         const originalPath = ctx.getMetaData("originalPath");
         const startTime = ctx.getMetaData("startTime");
@@ -35,7 +36,9 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
         const msg = `{"action":"${ext.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
         Logger[(status > 0 ? 'Error' : 'Info')](msg);
         ctx = null;
-    });
+    };
+    ctx.rpc.call.once("end", listener);
+    ctx.rpc.call.once("error", listener);
 
     // try /catch
     const response: any = {};
