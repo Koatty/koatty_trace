@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2021-12-23 10:52:34
+ * @LastEditTime: 2021-12-23 10:54:18
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -38,7 +38,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
         const now = Date.now();
         const msg = `{"action":"${ext.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
         Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-        // ctx = null;
+        ctx = null;
     }
     ctx.websocket.once("afterSend", listener);
     ctx.websocket.once("error", listener);
