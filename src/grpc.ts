@@ -3,14 +3,15 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2021-12-23 10:54:23
+ * @LastEditTime: 2022-02-14 10:12:38
  */
 
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { StatusBuilder } from "@grpc/grpc-js";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, GrpcStatusCodeMap, HttpStatusCode, isException, isPrevent, StatusCodeConvert } from "koatty_exception";
+import { Exception, GrpcException, isException, isPrevent, StatusCodeConvert } from "koatty_exception";
+import { IOCContainer } from "koatty_container";
 
 /**
  * grpcHandler
@@ -33,7 +34,7 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
         const originalPath = ctx.getMetaData("originalPath");
         const startTime = ctx.getMetaData("startTime");
         const status = StatusCodeConvert(ctx.status);
-        const msg = `{"action":"${ext.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
+        const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
         Logger[(status > 0 ? 'Error' : 'Info')](msg);
         ctx = null;
     };
@@ -53,12 +54,8 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
         ctx.rpc.callback(null, res ?? ctx.body ?? "");
         return null;
     } catch (err: any) {
-        // skip prevent errors
-        if (isPrevent(err)) {
-            ctx.rpc.callback(null, ctx.body ?? "");
-            return null;
-        }
-        return responseError(ctx, err);
+        Logger.Error(err.stack);
+        return catcher(ctx, err);
     } finally {
         ctx.rpc.call.emit("end");
         clearTimeout(response.timeout);
@@ -66,36 +63,26 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
 }
 
 /**
- * build gRPC responseError
+ * error catcher
  *
+ * @template T
  * @param {KoattyContext} ctx
- * @param {(Exception | Error)} err
- * @returns {*}  {Partial<StatusObject>}
+ * @param {(Exception | T)} err
  */
-function responseError(ctx: KoattyContext, err: Exception | Error) {
-    let errObj;
-    try {
-        let code = 2, message = err.message;
-        if (isException(err)) {
-            const status = (<Exception>err).status || ctx.status;
-            code = StatusCodeConvert(<HttpStatusCode>status);
-            message = message || GrpcStatusCodeMap.get(code) || "";
-            if (ctx.status === 200) {
-                ctx.status = <HttpStatusCode>status;
-            }
-        }
-        if (message !== "") {
-            errObj = new StatusBuilder().withCode(code).withDetails(message).build();
-        } else {
-            errObj = new StatusBuilder().withCode(code).build();
-        }
-        Logger.Error(errObj);
-        ctx.rpc.callback(errObj, null);
-        return;
-    } catch (error) {
-        errObj = new StatusBuilder().withCode(2).build();
-        Logger.Error(errObj);
-        ctx.rpc.callback(errObj, null);
-        return;
+function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T) {
+    // skip prevent errors
+    if (isPrevent(err)) {
+        ctx.rpc.callback(null, ctx.body ?? "");
+        return null;
     }
+    if (isException(err)) {
+        return (<Exception | T>err).handler(ctx);
+    }
+    // 查找全局错误处理
+    const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
+    if (globalErrorHandler) {
+        return new globalErrorHandler(err.message).handler(ctx);
+    }
+    // 使用默认错误处理
+    return new GrpcException(err.message).handler(ctx);
 }

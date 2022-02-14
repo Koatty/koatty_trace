@@ -3,13 +3,14 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2021-12-23 10:54:18
+ * @LastEditTime: 2022-02-14 10:13:08
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, isPrevent } from "koatty_exception";
+import { Exception, WsException, isException, isPrevent } from "koatty_exception";
+import { IOCContainer } from "koatty_container";
 
 /**
  * wsHandler
@@ -36,7 +37,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
     // after send message event
     const listener = () => {
         const now = Date.now();
-        const msg = `{"action":"${ext.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
+        const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
         Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
         ctx = null;
     }
@@ -62,17 +63,35 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
         ctx.websocket.send(inspect(res), () => ctx.websocket.emit('afterSend'));
         return null;
     } catch (err: any) {
-        // skip prevent errors
-        if (isPrevent(err)) {
-            ctx.websocket.send(inspect(ctx.body || ""), () => ctx.websocket.emit('afterSend'));
-            return null;
-        }
-        Logger.Error(err);
-        ctx.status = err.status ?? (ctx.status || 2);
-        ctx.websocket.emit('error');
-        return null;
+        Logger.Error(err.stack);
+        return catcher(ctx, err);
     } finally {
         clearTimeout(response.timeout);
     }
 
+}
+
+/**
+ * error catcher
+ *
+ * @template T
+ * @param {KoattyContext} ctx
+ * @param {(Exception | T)} err
+ */
+function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T) {
+    // skip prevent errors
+    if (isPrevent(err)) {
+        ctx.websocket.send(inspect(ctx.body || ""), () => ctx.websocket.emit('afterSend'));
+        return null;
+    }
+    if (isException(err)) {
+        return (<Exception | T>err).handler(ctx);
+    }
+    // 查找全局错误处理
+    const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
+    if (globalErrorHandler) {
+        return new globalErrorHandler(err.message).handler(ctx);
+    }
+    // 使用默认错误处理
+    return new WsException(err.message).handler(ctx);
 }
