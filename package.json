@@ -1,6 +1,6 @@
 {
     "name": "koatty_trace",
-    "version": "1.5.4-0",
+    "version": "1.5.4",
     "description": "Full link tracking and error interception for koatty.",
     "scripts": {
         "build": "npm run build:js && npm run build:dts && npm run build:doc && npm run build:cp",
@@ -90,7 +90,7 @@
     "dependencies": {
         "koatty_core": "^1.x.x",
         "koatty_container": "^1.x.x",
-        "koatty_exception": "^1.1.1-0",
+        "koatty_exception": "^1.x.x",
         "koatty_lib": "^1.x.x",
         "uuid": "^8.3.2"
     },
