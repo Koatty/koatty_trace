@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2022-02-14 10:13:08
+ * @LastEditTime: 2022-02-18 19:01:31
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -39,33 +39,39 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
         const now = Date.now();
         const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
         Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-        ctx = null;
+        // ctx = null;
     }
-    ctx.websocket.once("afterSend", listener);
-    ctx.websocket.once("error", listener);
+    ctx.res.once("finish", listener);
 
-    // close event
-    ctx.websocket.once("close", (socket: any, code: number, reason: Buffer) => {
-        Logger.Error("websocket closed: ", Helper.toString(reason));
-    });
+    // ctx.websocket.once("error", listener);
+    // ctx.websocket.once("connection", () => {
+    //     Logger.Info("websocket connected");
+    // });
+    // ctx.websocket.once("close", (socket: any, code: number, reason: Buffer) => {
+    //     Logger.Error("websocket closed: ", Helper.toString(reason));
+    // });
 
     // try /catch
     const response: any = ctx.res;
     try {
         response.timeout = null;
         // promise.race
-        let res = await Promise.race([new Promise((resolve, reject) => {
+        const res = await Promise.race([new Promise((resolve, reject) => {
             response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
             return;
         }), next()]);
 
-        res = inspect(res ?? ctx.body ?? "");
-        ctx.websocket.send(inspect(res), () => ctx.websocket.emit('afterSend'));
+        ctx.body = inspect(res ?? ctx.body ?? "");
+        if (ctx.body && ctx.status === 404) {
+            ctx.status = 200;
+        }
+        ctx.websocket.send(ctx.body, null);
         return null;
     } catch (err: any) {
         Logger.Error(err.stack);
         return catcher(ctx, err);
     } finally {
+        ctx.res.emit("finish");
         clearTimeout(response.timeout);
     }
 

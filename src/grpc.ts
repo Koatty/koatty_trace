@@ -3,9 +3,9 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2022-02-16 16:56:30
+ * @LastEditTime: 2022-02-18 19:01:33
  */
-
+import statuses from 'statuses';
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
@@ -35,9 +35,9 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
         const status = StatusCodeConvert(ctx.status);
         const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${originalPath}"}`;
         Logger[(status > 0 ? 'Error' : 'Info')](msg);
-        ctx = null;
+        // ctx = null;
     };
-    ctx.rpc.call.once("end", listener);
+    ctx.res.once("finish", listener);
     ctx.rpc.call.once("error", listener);
 
     // try /catch
@@ -50,13 +50,17 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
             response.timeout = setTimeout(reject, timeout, new Exception('Deadline exceeded', 1, 4));
             return;
         }), next()]);
-        ctx.rpc.callback(null, res ?? ctx.body ?? "");
+        ctx.body = res ?? ctx.body ?? "";
+        if (ctx.body && ctx.status === 404) {
+            ctx.status = 200;
+        }
+        ctx.rpc.callback(null, ctx.body);
         return null;
     } catch (err: any) {
         Logger.Error(err.stack);
         return catcher(ctx, err);
     } finally {
-        ctx.rpc.call.emit("end");
+        ctx.res.emit("finish");
         clearTimeout(response.timeout);
     }
 }

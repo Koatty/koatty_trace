@@ -3,11 +3,11 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-18 10:44:51
- * @LastEditTime: 2021-11-19 00:21:44
+ * @LastEditTime: 2022-02-16 16:59:32
  */
+import { AsyncLocalStorage, AsyncResource } from "async_hooks";
 const isWrappedSymbol = Symbol('cls-tracer-is-wrapped')
 const wrappedSymbol = Symbol('cls-tracer-wrapped-function')
-import { AsyncLocalStorage, AsyncResource } from "async_hooks";
 
 // AsyncLocalStorage
 export const asyncLocalStorage = new AsyncLocalStorage();

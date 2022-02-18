@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2022-02-14 10:10:54
+ * @LastEditTime: 2022-02-18 18:21:55
  */
 import { KoattyContext } from "koatty_core";
 import { Helper } from "koatty_lib";
@@ -37,7 +37,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
         const now = Date.now();
         const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
         Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-        ctx = null;
+        // ctx = null;
     });
 
     // try /catch
@@ -50,9 +50,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
             return;
         }), next()]);
 
-        if (res && ctx.status !== 304) {
-            ctx.body = res ?? "";
-        }
+        ctx.body = res ?? "";
 
         return null;
     } catch (err: any) {

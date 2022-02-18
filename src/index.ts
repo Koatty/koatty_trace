@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2022-02-14 10:39:35
+ * @LastEditTime: 2022-02-18 18:01:10
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -14,6 +14,7 @@ import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
 import { httpHandler } from './http';
 import { grpcHandler } from './grpc';
 import { wsHandler } from './ws';
+import { respond } from './respond';
 
 /**
  * GetTraceId
@@ -59,21 +60,25 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
     const openTrace = app.config("open_trace") || false;
     return async (ctx: KoattyContext, next: Koa.Next) => {
         // 
-        const respWapper = (currTraceId: string) => {
+        const respWapper = async (currTraceId: string) => {
             // metadata
             ctx.setMetaData(options.HeaderName, currTraceId);
             if (ctx.protocol === "grpc") {
+                // allow bypassing koa
+                ctx.respond = false;
                 ctx.rpc.call.metadata.set(options.HeaderName, currTraceId);
-                return grpcHandler(ctx, next, { timeout, currTraceId, encoding });
+                await grpcHandler(ctx, next, { timeout, currTraceId, encoding });
             } else if (ctx.protocol === "ws" || ctx.protocol === "wss") {
-                // response header
+                // allow bypassing koa
+                ctx.respond = false;
                 ctx.set(options.HeaderName, currTraceId);
-                return wsHandler(ctx, next, { timeout, currTraceId, encoding });
+                await wsHandler(ctx, next, { timeout, currTraceId, encoding });
             } else {
                 // response header
                 ctx.set(options.HeaderName, currTraceId);
-                return httpHandler(ctx, next, { timeout, currTraceId, encoding });
+                await httpHandler(ctx, next, { timeout, currTraceId, encoding });
             }
+            return respond(ctx);
         }
 
         let currTraceId = '';
