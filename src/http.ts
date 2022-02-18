@@ -73,14 +73,29 @@ function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception
     if (isPrevent(err)) {
         return null;
     }
+    let flag = false;
     if (isException(err)) {
-        return (<Exception | T>err).handler(ctx);
+        flag = true;
     }
     // 查找全局错误处理
     const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
     if (globalErrorHandler) {
+        if (flag) {
+            return new globalErrorHandler(
+                (<Exception | T>err).message,
+                (<Exception | T>err).code,
+                (<Exception | T>err).status,
+            ).handler(ctx);
+        }
         return new globalErrorHandler(err.message).handler(ctx);
     }
     // 使用默认错误处理
+    if (flag) {
+        return new Exception(
+            (<Exception | T>err).message,
+            (<Exception | T>err).code,
+            (<Exception | T>err).status,
+        ).handler(ctx);
+    }
     return new Exception(err.message).handler(ctx);
 }

@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2022-02-18 19:01:33
+ * @LastEditTime: 2022-02-19 00:57:14
  */
 import statuses from 'statuses';
 import * as Helper from "koatty_lib";
@@ -78,14 +78,29 @@ function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception
         ctx.rpc.callback(null, ctx.body ?? "");
         return null;
     }
+    let flag = false;
     if (isException(err)) {
-        return (<Exception | T>err).handler(ctx);
+        flag = true;
     }
     // 查找全局错误处理
     const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
     if (globalErrorHandler) {
+        if (flag) {
+            return new globalErrorHandler(
+                (<Exception | T>err).message,
+                (<Exception | T>err).code,
+                (<Exception | T>err).status,
+            ).handler(ctx);
+        }
         return new globalErrorHandler(err.message).handler(ctx);
     }
     // 使用默认错误处理
+    if (flag) {
+        return new GrpcException(
+            (<Exception | T>err).message,
+            (<Exception | T>err).code,
+            (<Exception | T>err).status,
+        ).handler(ctx);
+    }
     return new GrpcException(err.message).handler(ctx);
 }

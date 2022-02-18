@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2022-02-18 19:01:31
+ * @LastEditTime: 2022-02-19 00:57:43
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -90,14 +90,29 @@ function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception
         ctx.websocket.send(inspect(ctx.body || ""), () => ctx.websocket.emit('afterSend'));
         return null;
     }
+    let flag = false;
     if (isException(err)) {
-        return (<Exception | T>err).handler(ctx);
+        flag = true;
     }
     // 查找全局错误处理
     const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
     if (globalErrorHandler) {
+        if (flag) {
+            return new globalErrorHandler(
+                (<Exception | T>err).message,
+                (<Exception | T>err).code,
+                (<Exception | T>err).status,
+            ).handler(ctx);
+        }
         return new globalErrorHandler(err.message).handler(ctx);
     }
     // 使用默认错误处理
+    if (flag) {
+        return new WsException(
+            (<Exception | T>err).message,
+            (<Exception | T>err).code,
+            (<Exception | T>err).status,
+        ).handler(ctx);
+    }
     return new WsException(err.message).handler(ctx);
 }
