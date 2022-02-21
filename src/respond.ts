@@ -3,12 +3,13 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-18 16:55:05
- * @LastEditTime: 2022-02-18 17:57:01
+ * @LastEditTime: 2022-02-21 16:22:35
  */
-import statuses from 'statuses';
 import { KoattyContext } from "koatty_core";
 import { Stream } from 'stream';
 
+// StatusEmpty
+const StatusEmpty = [204, 205, 304];
 /**
  * Response helper.
  * A copy of koa respond: https://github.com/koajs/koa/blob/aa816ca523e0f7f3ca7623163762a2e63a7b0ee3/lib/application.js#L220
@@ -27,7 +28,7 @@ export function respond(ctx: KoattyContext) {
     const code = ctx.status;
 
     // ignore body
-    if (statuses.empty[code]) {
+    if (StatusEmpty.includes(code)) {
         // strip headers
         ctx.body = null;
         return res.end();

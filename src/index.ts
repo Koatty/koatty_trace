@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2022-02-18 18:01:10
+ * @LastEditTime: 2022-02-21 11:41:18
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -11,9 +11,9 @@ import { v4 as uuidv4 } from "uuid";
 import { Helper } from "koatty_lib";
 import { Koatty, KoattyContext } from "koatty_core";
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
-import { httpHandler } from './http';
-import { grpcHandler } from './grpc';
-import { wsHandler } from './ws';
+import { httpHandler } from './handler/http';
+import { grpcHandler } from './handler/grpc';
+import { wsHandler } from './handler/ws';
 import { respond } from './respond';
 
 /**

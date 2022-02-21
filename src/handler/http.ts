@@ -3,13 +3,13 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2022-02-18 18:21:55
+ * @LastEditTime: 2022-02-21 11:34:33
  */
-import { KoattyContext } from "koatty_core";
 import { Helper } from "koatty_lib";
+import { catcher } from "../catcher";
+import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, HttpStatusCode, isException, isPrevent } from "koatty_exception";
-import { IOCContainer } from "koatty_container";
+import { Exception, isPrevent } from "koatty_exception";
 
 /**
  * httpHandler
@@ -51,51 +51,16 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
         }), next()]);
 
         ctx.body = res ?? "";
-
         return null;
     } catch (err: any) {
         Logger.Error(err.stack);
+        // skip prevent errors
+        if (isPrevent(err)) {
+            return null;
+        }
         return catcher(ctx, err);
     } finally {
         clearTimeout(response.timeout);
     }
 }
 
-/**
- * error catcher
- *
- * @template T
- * @param {KoattyContext} ctx
- * @param {(Exception | T)} err
- */
-function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T) {
-    // skip prevent errors
-    if (isPrevent(err)) {
-        return null;
-    }
-    let flag = false;
-    if (isException(err)) {
-        flag = true;
-    }
-    // 查找全局错误处理
-    const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
-    if (globalErrorHandler) {
-        if (flag) {
-            return new globalErrorHandler(
-                (<Exception | T>err).message,
-                (<Exception | T>err).code,
-                (<Exception | T>err).status,
-            ).handler(ctx);
-        }
-        return new globalErrorHandler(err.message).handler(ctx);
-    }
-    // 使用默认错误处理
-    if (flag) {
-        return new Exception(
-            (<Exception | T>err).message,
-            (<Exception | T>err).code,
-            (<Exception | T>err).status,
-        ).handler(ctx);
-    }
-    return new Exception(err.message).handler(ctx);
-}

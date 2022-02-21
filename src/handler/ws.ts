@@ -3,14 +3,14 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2022-02-19 00:57:43
+ * @LastEditTime: 2022-02-21 11:33:04
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, WsException, isException, isPrevent } from "koatty_exception";
-import { IOCContainer } from "koatty_container";
+import { Exception, isPrevent } from "koatty_exception";
+import { catcher } from "../catcher";
 
 /**
  * wsHandler
@@ -69,6 +69,11 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
         return null;
     } catch (err: any) {
         Logger.Error(err.stack);
+        // skip prevent errors
+        if (isPrevent(err)) {
+            ctx.websocket.send(inspect(ctx.body || ""), () => ctx.websocket.emit('finish'));
+            return null;
+        }
         return catcher(ctx, err);
     } finally {
         ctx.res.emit("finish");
@@ -77,42 +82,3 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
 
 }
 
-/**
- * error catcher
- *
- * @template T
- * @param {KoattyContext} ctx
- * @param {(Exception | T)} err
- */
-function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T) {
-    // skip prevent errors
-    if (isPrevent(err)) {
-        ctx.websocket.send(inspect(ctx.body || ""), () => ctx.websocket.emit('afterSend'));
-        return null;
-    }
-    let flag = false;
-    if (isException(err)) {
-        flag = true;
-    }
-    // 查找全局错误处理
-    const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
-    if (globalErrorHandler) {
-        if (flag) {
-            return new globalErrorHandler(
-                (<Exception | T>err).message,
-                (<Exception | T>err).code,
-                (<Exception | T>err).status,
-            ).handler(ctx);
-        }
-        return new globalErrorHandler(err.message).handler(ctx);
-    }
-    // 使用默认错误处理
-    if (flag) {
-        return new WsException(
-            (<Exception | T>err).message,
-            (<Exception | T>err).code,
-            (<Exception | T>err).status,
-        ).handler(ctx);
-    }
-    return new WsException(err.message).handler(ctx);
-}

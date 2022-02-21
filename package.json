@@ -93,7 +93,6 @@
         "koatty_core": "^1.x.x",
         "koatty_exception": "^1.x.x",
         "koatty_lib": "^1.x.x",
-        "statuses": "^2.0.1",
         "uuid": "^8.3.2"
     },
     "peerDependencies": {
