@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.1](https://github.com/koatty/koatty_trace/compare/v1.6.0...v1.6.1) (2022-02-21)
+
 ## [1.6.0](https://github.com/koatty/koatty_trace/compare/v1.6.0-4...v1.6.0) (2022-02-21)
 
 ## [1.6.0-4](https://github.com/koatty/koatty_trace/compare/v1.6.0-3...v1.6.0-4) (2022-02-21)
