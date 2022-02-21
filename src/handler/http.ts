@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2022-02-21 11:34:33
+ * @LastEditTime: 2022-02-21 18:17:18
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -49,8 +49,9 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
             response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
             return;
         }), next()]);
-
-        ctx.body = res ?? "";
+        if (!Helper.isTrueEmpty(res)) {
+            ctx.body = res;
+        }
         return null;
     } catch (err: any) {
         Logger.Error(err.stack);
