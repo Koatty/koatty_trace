@@ -3,11 +3,12 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2022-02-21 11:38:49
+ * @LastEditTime: 2022-02-25 17:06:46
  */
 
 import { IOCContainer } from "koatty_container";
 import { KoattyContext } from "koatty_core";
+import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isException } from "koatty_exception";
 
 /**
@@ -18,6 +19,9 @@ import { Exception, isException } from "koatty_exception";
 * @param {(Exception | T)} err
 */
 export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T) {
+    // LOG
+    Logger.Error(err.stack);
+    // 执行错误处理
     if (isException(err)) {
         return (<Exception | T>err).handler(ctx);
     }

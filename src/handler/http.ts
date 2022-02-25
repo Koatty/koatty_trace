@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2022-02-21 18:17:18
+ * @LastEditTime: 2022-02-25 17:05:32
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -54,7 +54,6 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
         }
         return null;
     } catch (err: any) {
-        Logger.Error(err.stack);
         // skip prevent errors
         if (isPrevent(err)) {
             return null;
