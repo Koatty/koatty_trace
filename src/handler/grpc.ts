@@ -3,9 +3,8 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2022-03-02 10:37:04
+ * @LastEditTime: 2022-03-02 18:44:37
  */
-import { inspect } from "util";
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
@@ -57,7 +56,7 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
             ctx.status = 200;
         }
         if (ctx.status >= 400) {
-            throw new Exception(inspect(ctx.body), 0, ctx.status);
+            throw new Exception("", 0, ctx.status);
         }
         ctx.rpc.callback(null, ctx.body);
         return null;
