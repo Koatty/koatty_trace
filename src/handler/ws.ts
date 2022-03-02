@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2022-03-02 18:43:55
+ * @LastEditTime: 2022-03-02 18:49:17
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -70,12 +70,12 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
         if (ctx.status >= 400) {
             throw new Exception("", 1, ctx.status);
         }
-        ctx.websocket.send(ctx.body, null);
+        ctx.websocket.send(inspect(ctx.body || ''), null);
         return null;
     } catch (err: any) {
         // skip prevent errors
         if (isPrevent(err)) {
-            ctx.websocket.send(inspect(ctx.body || ""), () => ctx.websocket.emit('finish'));
+            ctx.websocket.send(inspect(ctx.body || ''), () => ctx.websocket.emit('finish'));
             return null;
         }
         return catcher(ctx, err);
