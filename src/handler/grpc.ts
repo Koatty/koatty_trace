@@ -3,8 +3,9 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2022-02-25 17:04:55
+ * @LastEditTime: 2022-03-02 10:37:04
  */
+import { inspect } from "util";
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
@@ -49,9 +50,14 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
             response.timeout = setTimeout(reject, timeout, new Exception('Deadline exceeded', 1, 4));
             return;
         }), next()]);
-        ctx.body = res ?? ctx.body ?? "";
+        if (!Helper.isTrueEmpty(res)) {
+            ctx.body = res;
+        }
         if (ctx.body && ctx.status === 404) {
             ctx.status = 200;
+        }
+        if (ctx.status >= 400) {
+            throw new Exception(inspect(ctx.body), 0, ctx.status);
         }
         ctx.rpc.callback(null, ctx.body);
         return null;

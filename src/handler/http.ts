@@ -3,8 +3,9 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2022-02-25 17:05:32
+ * @LastEditTime: 2022-03-02 10:37:00
  */
+import { inspect } from "util";
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
 import { KoattyContext } from "koatty_core";
@@ -51,6 +52,12 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
         }), next()]);
         if (!Helper.isTrueEmpty(res)) {
             ctx.body = res;
+        }
+        if (ctx.status >= 400) {
+            if (ctx.body) {
+                ctx.body = inspect(ctx.body);
+            }
+            throw new Exception(<string>ctx.body || "", 1, ctx.status);
         }
         return null;
     } catch (err: any) {
