@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2022-08-19 11:59:56
+ * @LastEditTime: 2022-08-19 12:05:36
  */
 
 import { IOCContainer } from "koatty_container";
@@ -28,7 +28,7 @@ export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Ex
     }
     // 查找全局错误处理
     const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
-    const message = (err.message).includes('"') ? ("err.message").replace('"', '\"') : err.message;
+    const message = (err.message).includes('"') ? (err.message).replace('"', '\"') : err.message;
     if (globalErrorHandler) {
         return new globalErrorHandler(message, (<T>err).code ?? 1, (<T>err).status ?? 500).handler(ctx);
     }
