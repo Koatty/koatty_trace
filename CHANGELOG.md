@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.9](https://github.com/koatty/koatty_trace/compare/v1.6.8...v1.6.9) (2022-08-19)
+
+
+### Bug Fixes
+
+* 处理特殊字符 ([2e398b9](https://github.com/koatty/koatty_trace/commit/2e398b9b749943586b1de9d3b1284403cd7c00f9))
+* 错误的赋值 ([22a0386](https://github.com/koatty/koatty_trace/commit/22a038612bfbd119e7fe7c65c9a0012685a96a1f))
+
 ### [1.6.8](https://github.com/koatty/koatty_trace/compare/v1.6.7...v1.6.8) (2022-08-19)
 
 
