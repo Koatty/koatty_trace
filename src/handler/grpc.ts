@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2022-03-02 18:49:41
+ * @LastEditTime: 2022-11-01 15:42:27
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -45,14 +45,12 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
     try {
         response.timeout = null;
         // promise.race
-        const res = await Promise.race([new Promise((resolve, reject) => {
+        await Promise.race([new Promise((resolve, reject) => {
             response.timeout = setTimeout(reject, timeout, new Exception('Deadline exceeded', 1, 4));
             return;
         }), next()]);
-        if (!Helper.isTrueEmpty(res)) {
-            ctx.body = res;
-        }
-        if (ctx.body && ctx.status === 404) {
+
+        if (ctx.body !== undefined && ctx.status === 404) {
             ctx.status = 200;
         }
         if (ctx.status >= 400) {
