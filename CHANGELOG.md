@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.10](https://github.com/koatty/koatty_trace/compare/v1.6.9...v1.6.10) (2022-11-01)
+
+
+### Bug Fixes
+
+* ctx.body赋值 ([694e8c5](https://github.com/koatty/koatty_trace/commit/694e8c582504e4876bf74334e2fcb2a046c93e9e))
+
 ### [1.6.9](https://github.com/koatty/koatty_trace/compare/v1.6.8...v1.6.9) (2022-08-19)
 
 
