@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/koatty/koatty_trace/compare/v1.6.10...v1.7.0) (2022-11-16)
+
+
+### Bug Fixes
+
+* add termined ([fdec6bb](https://github.com/koatty/koatty_trace/commit/fdec6bbf63b0944daa911a89565e0135443aaffe))
+
 ### [1.6.10](https://github.com/koatty/koatty_trace/compare/v1.6.9...v1.6.10) (2022-11-01)
 
 
