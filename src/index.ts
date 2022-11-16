@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2022-03-01 15:56:09
+ * @LastEditTime: 2022-11-16 16:16:28
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -58,6 +58,14 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
     const encoding = app.config('encoding') || 'utf-8';
     const openTrace = app.config("open_trace") || false;
     return async (ctx: KoattyContext, next: Koa.Next) => {
+        // server termined
+        let termined = false;
+        if (app.server.status === 503) {
+            ctx.status = 503;
+            ctx.set('Connection', 'close');
+            ctx.body = 'Server is in the process of shutting down';
+            termined = true;
+        }
         // 
         const respWapper = async (currTraceId: string) => {
             // metadata
@@ -66,16 +74,16 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
                 // allow bypassing koa
                 ctx.respond = false;
                 ctx.rpc.call.metadata.set(options.HeaderName, currTraceId);
-                await grpcHandler(ctx, next, { timeout, currTraceId, encoding });
+                await grpcHandler(ctx, next, { timeout, currTraceId, encoding, termined });
             } else if (ctx.protocol === "ws" || ctx.protocol === "wss") {
                 // allow bypassing koa
                 ctx.respond = false;
                 ctx.set(options.HeaderName, currTraceId);
-                await wsHandler(ctx, next, { timeout, currTraceId, encoding });
+                await wsHandler(ctx, next, { timeout, currTraceId, encoding, termined });
             } else {
                 // response header
                 ctx.set(options.HeaderName, currTraceId);
-                await httpHandler(ctx, next, { timeout, currTraceId, encoding });
+                await httpHandler(ctx, next, { timeout, currTraceId, encoding, termined });
             }
             return respond(ctx);
         }

@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2022-11-01 15:42:41
+ * @LastEditTime: 2022-11-16 16:17:37
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -43,12 +43,14 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
     // try /catch
     const response: any = ctx.res;
     try {
-        response.timeout = null;
-        // promise.race
-        await Promise.race([new Promise((resolve, reject) => {
-            response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
-            return;
-        }), next()]);
+        if (!ext.termined) {
+            response.timeout = null;
+            // promise.race
+            await Promise.race([new Promise((resolve, reject) => {
+                response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
+                return;
+            }), next()]);
+        }
 
         if (ctx.body !== undefined && ctx.status === 404) {
             ctx.status = 200;
