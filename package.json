@@ -1,6 +1,6 @@
 {
   "name": "koatty_trace",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Full link tracking and error interception for koatty.",
   "scripts": {
     "build": "npm run build:js && npm run build:dts && npm run build:doc && npm run build:cp",
@@ -57,6 +57,7 @@
   "devDependencies": {
     "@commitlint/cli": "^17.x.x",
     "@commitlint/config-conventional": "^17.x.x",
+    "@grpc/grpc-js": "^1.8.4",
     "@microsoft/api-documenter": "^7.x.x",
     "@microsoft/api-extractor": "^7.x.x",
     "@rollup/plugin-json": "^6.x.x",
@@ -64,6 +65,7 @@
     "@types/koa": "^2.x.x",
     "@types/node": "^18.x.x",
     "@types/uuid": "^9.x.x",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.x.x",
     "@typescript-eslint/parser": "^5.x.x",
     "conventional-changelog-cli": "^2.x.x",
