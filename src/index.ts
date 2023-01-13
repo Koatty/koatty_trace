@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2022-11-16 16:16:28
+ * @LastEditTime: 2023-01-13 12:28:23
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -22,7 +22,7 @@ import { respond } from './respond';
  * @returns {*}  
  */
 export function GetTraceId() {
-    return asyncLocalStorage.getStore();
+  return asyncLocalStorage.getStore();
 }
 
 /**
@@ -32,16 +32,16 @@ export function GetTraceId() {
  * @interface TraceOptions
  */
 export interface TraceOptions {
-    HeaderName: string;
-    IdFactory: any;
+  HeaderName: string;
+  IdFactory: any;
 }
 
 /** 
  * defaultOptions
  */
 const defaultOptions = {
-    HeaderName: 'X-Request-Id',
-    IdFactory: uuidv4,
+  HeaderName: 'X-Request-Id',
+  IdFactory: uuidv4,
 };
 
 /**
@@ -52,61 +52,61 @@ const defaultOptions = {
  * @returns {*}  {Koa.Middleware}
  */
 export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
-    options = { ...defaultOptions, ...options };
-    const headerName = options.HeaderName.toLowerCase();
-    const timeout = (app.config('http_timeout') || 10) * 1000;
-    const encoding = app.config('encoding') || 'utf-8';
-    const openTrace = app.config("open_trace") || false;
-    return async (ctx: KoattyContext, next: Koa.Next) => {
-        // server termined
-        let termined = false;
-        if (app.server.status === 503) {
-            ctx.status = 503;
-            ctx.set('Connection', 'close');
-            ctx.body = 'Server is in the process of shutting down';
-            termined = true;
-        }
-        // 
-        const respWapper = async (currTraceId: string) => {
-            // metadata
-            ctx.setMetaData(options.HeaderName, currTraceId);
-            if (ctx.protocol === "grpc") {
-                // allow bypassing koa
-                ctx.respond = false;
-                ctx.rpc.call.metadata.set(options.HeaderName, currTraceId);
-                await grpcHandler(ctx, next, { timeout, currTraceId, encoding, termined });
-            } else if (ctx.protocol === "ws" || ctx.protocol === "wss") {
-                // allow bypassing koa
-                ctx.respond = false;
-                ctx.set(options.HeaderName, currTraceId);
-                await wsHandler(ctx, next, { timeout, currTraceId, encoding, termined });
-            } else {
-                // response header
-                ctx.set(options.HeaderName, currTraceId);
-                await httpHandler(ctx, next, { timeout, currTraceId, encoding, termined });
-            }
-            return respond(ctx);
-        }
-
-        let currTraceId = '';
-        if (openTrace) {
-            if (ctx.protocol === "grpc") {
-                const request: any = ctx.getMetaData("_body") || {};
-                currTraceId = `${ctx.getMetaData(headerName)}` || <string>request[headerName];
-            } else {
-                currTraceId = <string>ctx.headers[headerName] || <string>ctx.query[headerName];
-            }
-            currTraceId = currTraceId || `koatty-${options.IdFactory()}`;
-
-            return asyncLocalStorage.run(currTraceId, () => {
-                const asyncResource = createAsyncResource();
-                wrapEmitter(ctx.req, asyncResource);
-                wrapEmitter(ctx.res, asyncResource);
-                return respWapper(currTraceId);
-            });
-        }
-
-        return respWapper(currTraceId);
+  options = { ...defaultOptions, ...options };
+  const headerName = options.HeaderName.toLowerCase();
+  const timeout = (app.config('http_timeout') || 10) * 1000;
+  const encoding = app.config('encoding') || 'utf-8';
+  const openTrace = app.config("open_trace") || false;
+  return async (ctx: KoattyContext, next: Koa.Next) => {
+    // server termined
+    let termined = false;
+    if (app.server.status === 503) {
+      ctx.status = 503;
+      ctx.set('Connection', 'close');
+      ctx.body = 'Server is in the process of shutting down';
+      termined = true;
     }
+    // 
+    const respWapper = async (currTraceId: string) => {
+      // metadata
+      ctx.setMetaData(options.HeaderName, currTraceId);
+      if (ctx.protocol === "grpc") {
+        // allow bypassing koa
+        ctx.respond = false;
+        ctx.rpc.call.metadata.set(options.HeaderName, currTraceId);
+        await grpcHandler(ctx, next, { timeout, currTraceId, encoding, termined });
+      } else if (ctx.protocol === "ws" || ctx.protocol === "wss") {
+        // allow bypassing koa
+        ctx.respond = false;
+        ctx.set(options.HeaderName, currTraceId);
+        await wsHandler(ctx, next, { timeout, currTraceId, encoding, termined });
+      } else {
+        // response header
+        ctx.set(options.HeaderName, currTraceId);
+        await httpHandler(ctx, next, { timeout, currTraceId, encoding, termined });
+      }
+      return respond(ctx);
+    }
+
+    let currTraceId = '';
+    if (openTrace) {
+      if (ctx.protocol === "grpc") {
+        const request: any = ctx.getMetaData("_body") || {};
+        currTraceId = `${ctx.getMetaData(headerName)}` || <string>request[headerName];
+      } else {
+        currTraceId = <string>ctx.headers[headerName] || <string>ctx.query[headerName];
+      }
+      currTraceId = currTraceId || `koatty-${options.IdFactory()}`;
+
+      return asyncLocalStorage.run(currTraceId, () => {
+        const asyncResource = createAsyncResource();
+        wrapEmitter(ctx.req, asyncResource);
+        wrapEmitter(ctx.res, asyncResource);
+        return respWapper(currTraceId);
+      });
+    }
+
+    return respWapper(currTraceId);
+  }
 }
 
