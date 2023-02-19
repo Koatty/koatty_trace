@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2023-01-13 12:28:11
+ * @LastEditTime: 2023-02-19 11:44:26
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -54,7 +54,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
   // try /catch
   const response: any = ctx.res;
   try {
-    if (!ext.termined) {
+    if (!ext.terminated) {
       response.timeout = null;
       // promise.race
       await Promise.race([new Promise((resolve, reject) => {

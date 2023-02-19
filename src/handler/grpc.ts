@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2023-01-13 12:28:00
+ * @LastEditTime: 2023-02-19 11:44:04
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -43,7 +43,7 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
   const response: any = {};
 
   try {
-    if (!ext.termined) {
+    if (!ext.terminated) {
       response.timeout = null;
       // promise.race
       await Promise.race([new Promise((resolve, reject) => {
