@@ -76,7 +76,6 @@
     "husky": "^4.x.x",
     "jest": "^29.x.x",
     "jest-html-reporters": "^3.x.x",
-    "opentracing": "^0.14.7",
     "rollup": "^3.x.x",
     "rollup-plugin-typescript2": "^0.x.x",
     "standard-version": "^9.x.x",
@@ -89,6 +88,7 @@
     "koatty_core": "^1.x.x",
     "koatty_exception": "^1.x.x",
     "koatty_lib": "^1.x.x",
+    "opentracing": "^0.14.7",
     "uuid": "^9.0.0"
   },
   "peerDependencies": {

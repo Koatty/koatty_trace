@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-02-21 15:46:15
+ * @LastEditTime: 2023-02-21 15:58:50
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -83,7 +83,6 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
     const respWapper = async (requestId: string, span?: Span) => {
       // metadata
       ctx.setMetaData(options.HeaderName, requestId);
-      span.addTags({ requestIdName: requestId });
 
       if (ctx.protocol === "grpc") {
         // allow bypassing koa
@@ -120,6 +119,7 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
       } else {
         span = tracer.startSpan(serviceName);
       }
+      span.addTags({ requestId });
 
       return asyncLocalStorage.run(requestId, () => {
         const asyncResource = createAsyncResource();
