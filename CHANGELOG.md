@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/koatty/koatty_trace/compare/v1.7.2...v1.8.0) (2023-02-21)
+
+
+### Features
+
+* opentracing ([7e98919](https://github.com/koatty/koatty_trace/commit/7e98919a1099a7834766f57a04aefb069615de24))
+
+
+### Bug Fixes
+
+* add tags ([220e45c](https://github.com/koatty/koatty_trace/commit/220e45c9a8460019e1bc2fdac6a0617107c9e622))
+
 ### [1.7.2](https://github.com/koatty/koatty_trace/compare/v1.7.0...v1.7.2) (2023-01-13)
 
 ## [1.7.0](https://github.com/koatty/koatty_trace/compare/v1.6.10...v1.7.0) (2022-11-16)
