@@ -10,11 +10,18 @@ GetTraceId
 <b>Signature:</b>
 
 ```typescript
-export declare function GetTraceId(): unknown;
+export declare function GetTraceId(options?: TraceOptions): any;
 ```
+
+## Parameters
+
+|  Parameter | Type | Description |
+|  --- | --- | --- |
+|  options | [TraceOptions](./koatty_trace.traceoptions.md) | <i>(Optional)</i> |
+
 <b>Returns:</b>
 
-unknown
+any
 
 {<!-- -->\*<!-- -->}
 
