@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2023-02-19 11:44:26
+ * @LastEditTime: 2023-02-20 18:33:31
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -11,6 +11,7 @@ import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
 import { catcher } from "../catcher";
+import { Span, Tags } from "opentracing";
 
 /**
  * wsHandler
@@ -34,16 +35,22 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
   ctx.set('X-Content-Type-Options', 'nosniff');
   ctx.set('X-XSS-Protection', '1;mode=block');
 
+  const span = <Span>ext.span;
+  span.setTag(Tags.HTTP_URL, ctx.originalUrl);
+  span.setTag(Tags.HTTP_METHOD, ctx.method);
+
   // after send message event
-  const listener = () => {
+  const finish = () => {
     const now = Date.now();
-    const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
+    const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
+    span.log({ "request": msg });
+    span.finish();
     // ctx = null;
   }
-  ctx.res.once("finish", listener);
+  ctx.res.once("finish", finish);
 
-  // ctx.websocket.once("error", listener);
+  // ctx.websocket.once("error", finish);
   // ctx.websocket.once("connection", () => {
   //     Logger.Info("websocket connected");
   // });

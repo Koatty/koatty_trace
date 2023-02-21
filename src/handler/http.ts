@@ -3,13 +3,14 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2023-01-13 12:28:05
+ * @LastEditTime: 2023-02-20 18:36:54
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
+import { Span, Tags } from "opentracing";
 
 /**
  * httpHandler
@@ -32,18 +33,24 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
   ctx.set('X-Content-Type-Options', 'nosniff');
   ctx.set('X-XSS-Protection', '1;mode=block');
 
+  const span = <Span>ext.span;
+  span.setTag(Tags.HTTP_URL, ctx.originalUrl);
+  span.setTag(Tags.HTTP_METHOD, ctx.method);
+
   // response finish
   ctx.res.once('finish', () => {
     const now = Date.now();
-    const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","traceId":"${ext.currTraceId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
+    const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
+    span.log({ "request": msg });
+    span.finish();
     // ctx = null;
   });
 
   // try /catch
   const response: any = ctx.res;
   try {
-    if (!ext.termined) {
+    if (!ext.terminated) {
       response.timeout = null;
       // promise.race
       await Promise.race([new Promise((resolve, reject) => {
