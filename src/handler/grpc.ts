@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2023-02-20 18:33:35
+ * @LastEditTime: 2023-02-26 13:07:58
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -34,8 +34,8 @@ export async function grpcHandler(ctx: KoattyContext, next: Function, ext?: any)
   // event callback
   const finish = () => {
     const now = Date.now();
-    const originalPath = ctx.getMetaData("originalPath");
-    const startTime = ctx.getMetaData("startTime");
+    const originalPath = ctx.getMetaData("originalPath")[0];
+    const startTime = ctx.getMetaData("startTime")[0];
     const status = StatusCodeConvert(ctx.status);
     const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${originalPath}"}`;
     Logger[(status > 0 ? 'Error' : 'Info')](msg);

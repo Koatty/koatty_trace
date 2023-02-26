@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-02-21 15:58:50
+ * @LastEditTime: 2023-02-26 13:07:10
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -105,8 +105,8 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
     let requestId = '';
     if (openTrace) {
       if (ctx.protocol === "grpc") {
-        const request: any = ctx.getMetaData("_body") || {};
-        requestId = `${ctx.getMetaData(requestIdName)}` || <string>request[requestIdName];
+        const request: any = ctx.getMetaData("_body")[0] || {};
+        requestId = `${ctx.getMetaData(requestIdName)[0]}` || <string>request[requestIdName];
       } else {
         requestId = <string>ctx.headers[requestIdName] || <string>ctx.query[requestIdName];
       }
