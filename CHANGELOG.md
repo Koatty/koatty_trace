@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.2](https://github.com/koatty/koatty_trace/compare/v1.8.0...v1.8.2) (2023-02-26)
+
+
+### Bug Fixes
+
+* getMetaData 取值 ([4b87999](https://github.com/koatty/koatty_trace/commit/4b879995b1e244a8867d01b09166e8dd30e44251))
+
 ## [1.8.0](https://github.com/koatty/koatty_trace/compare/v1.7.2...v1.8.0) (2023-02-21)
 
 
