@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2023-02-20 18:33:31
+ * @LastEditTime: 2023-07-27 23:08:51
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -12,6 +12,7 @@ import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
 import { catcher } from "../catcher";
 import { Span, Tags } from "opentracing";
+import { HttpStatusCode, HttpStatusCodeMap } from "./code";
 
 /**
  * wsHandler
@@ -36,16 +37,16 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
   ctx.set('X-XSS-Protection', '1;mode=block');
 
   const span = <Span>ext.span;
-  span.setTag(Tags.HTTP_URL, ctx.originalUrl);
-  span.setTag(Tags.HTTP_METHOD, ctx.method);
+  span?.setTag(Tags.HTTP_URL, ctx.originalUrl);
+  span?.setTag(Tags.HTTP_METHOD, ctx.method);
 
   // after send message event
   const finish = () => {
     const now = Date.now();
     const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-    span.log({ "request": msg });
-    span.finish();
+    span?.log({ "request": msg });
+    span?.finish();
     // ctx = null;
   }
   ctx.res.once("finish", finish);
@@ -92,3 +93,25 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
 
 }
 
+/**
+ * Websocket Exception handler
+ *
+ * @export
+ * @param {KoattyContext} ctx
+ * @param {Exception} err
+ * @returns {*}  {void}
+ */
+export function wsExceptionHandler(ctx: any, err: Exception): void {
+  try {
+    ctx.status = ctx.status || 500;
+    if (HttpStatusCodeMap.has(err.status)) {
+      ctx.status = <HttpStatusCode>err.status;
+    }
+    const msg = err.message || ctx.message || "";
+    const body = `{"code":${err.code || 1},"message":"${msg}","data":${ctx.body ? JSON.stringify(ctx.body) : (ctx.body || null)}}`;
+    return ctx.websocket.send(body);
+  } catch (error) {
+    Logger.Error(error);
+    return null;
+  }
+}

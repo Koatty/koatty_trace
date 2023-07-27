@@ -57,7 +57,7 @@
   "devDependencies": {
     "@commitlint/cli": "^17.x.x",
     "@commitlint/config-conventional": "^17.x.x",
-    "@grpc/grpc-js": "^1.8.4",
+    "@grpc/grpc-js": "^1.x.x",
     "@microsoft/api-documenter": "^7.x.x",
     "@microsoft/api-extractor": "^7.x.x",
     "@rollup/plugin-json": "^6.x.x",

@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2023-02-20 18:36:54
+ * @LastEditTime: 2023-07-27 23:08:45
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -11,6 +11,7 @@ import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
 import { Span, Tags } from "opentracing";
+import { HttpStatusCode, HttpStatusCodeMap } from "./code";
 
 /**
  * httpHandler
@@ -34,16 +35,16 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
   ctx.set('X-XSS-Protection', '1;mode=block');
 
   const span = <Span>ext.span;
-  span.setTag(Tags.HTTP_URL, ctx.originalUrl);
-  span.setTag(Tags.HTTP_METHOD, ctx.method);
+  span?.setTag(Tags.HTTP_URL, ctx.originalUrl);
+  span?.setTag(Tags.HTTP_METHOD, ctx.method);
 
   // response finish
   ctx.res.once('finish', () => {
     const now = Date.now();
     const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-    span.log({ "request": msg });
-    span.finish();
+    span?.log({ "request": msg });
+    span?.finish();
     // ctx = null;
   });
 
@@ -78,3 +79,32 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
   }
 }
 
+/**
+ * HTTP Exception handler
+ *
+ * @export
+ * @param {KoattyContext} ctx
+ * @param {Exception} err
+ * @returns {*}  
+ */
+export function httpExceptionHandler(ctx: any, err: Exception) {
+  try {
+    ctx.status = ctx.status || 500;
+    if (HttpStatusCodeMap.has(err.status)) {
+      ctx.status = <HttpStatusCode>err.status;
+    }
+
+    let contentType = 'application/json';
+    if (ctx.encoding !== false) {
+      contentType = `${contentType}; charset=${ctx.encoding}`;
+    }
+    ctx.type = contentType;
+    const msg = err.message || ctx.message || "";
+    const body = `{"code":${err.code || 1},"message":"${msg}","data":${ctx.body ? JSON.stringify(ctx.body) : (ctx.body || null)}}`;
+    ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
+    return ctx.res.end(body);
+  } catch (error) {
+    Logger.Error(error);
+    return null;
+  }
+}
