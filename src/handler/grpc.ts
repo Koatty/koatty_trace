@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2023-07-27 22:59:15
+ * @LastEditTime: 2023-07-27 23:32:21
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -30,8 +30,11 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
   ctx.rpc.call.sendMetadata(ctx.rpc.call.metadata);
 
   const span = <Span>ext.span;
-  span?.setTag(Tags.HTTP_URL, ctx.originalUrl);
-  span?.setTag(Tags.HTTP_METHOD, ctx.method);
+  if (span) {
+    span.setTag(Tags.HTTP_URL, ctx.originalUrl);
+    span.setTag(Tags.HTTP_METHOD, ctx.method);
+  }
+
 
   // event callback
   const finish = () => {
@@ -41,8 +44,11 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
     const status = StatusCodeConvert(ctx.status);
     const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${originalPath}"}`;
     Logger[(status > 0 ? 'Error' : 'Info')](msg);
-    span?.log({ "request": msg });
-    span?.finish();
+    if (span) {
+      span.log({ "request": msg });
+      span.finish();
+    }
+
     // ctx = null;
   };
   ctx.res.once("finish", finish);

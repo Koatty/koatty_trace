@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2023-07-27 23:08:45
+ * @LastEditTime: 2023-07-27 23:30:42
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -35,16 +35,21 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
   ctx.set('X-XSS-Protection', '1;mode=block');
 
   const span = <Span>ext.span;
-  span?.setTag(Tags.HTTP_URL, ctx.originalUrl);
-  span?.setTag(Tags.HTTP_METHOD, ctx.method);
+  if (span) {
+    span.setTag(Tags.HTTP_URL, ctx.originalUrl);
+    span.setTag(Tags.HTTP_METHOD, ctx.method);
+  }
+
 
   // response finish
   ctx.res.once('finish', () => {
     const now = Date.now();
     const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-    span?.log({ "request": msg });
-    span?.finish();
+    if (span) {
+      span.log({ "request": msg });
+      span.finish();
+    }
     // ctx = null;
   });
 
