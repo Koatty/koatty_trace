@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-07-27 23:01:34
+ * @LastEditTime: 2023-07-27 23:23:00
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -113,13 +113,16 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
       requestId = requestId || GetTraceId(options);
 
       let span: Span;
-      const wireCtx = tracer.extract(FORMAT_HTTP_HEADERS, ctx.req.headers);
-      if (wireCtx != null) {
-        span = tracer.startSpan(serviceName, { childOf: wireCtx });
-      } else {
-        span = tracer.startSpan(serviceName);
+      if (tracer) {
+        const wireCtx = tracer.extract(FORMAT_HTTP_HEADERS, ctx.req.headers);
+        if (wireCtx != null) {
+          span = tracer.startSpan(serviceName, { childOf: wireCtx });
+        } else {
+          span = tracer.startSpan(serviceName);
+        }
+        span?.addTags({ requestId });
       }
-      span.addTags({ requestId });
+
       ctx.setMetaData("tracer_span", span);
 
       return asyncLocalStorage.run(requestId, () => {
