@@ -7,7 +7,7 @@
 GetTraceId
 
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare function GetTraceId(options?: TraceOptions): any;
@@ -17,9 +17,9 @@ export declare function GetTraceId(options?: TraceOptions): any;
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  options | [TraceOptions](./koatty_trace.traceoptions.md) | <i>(Optional)</i> |
+|  options | [TraceOptions](./koatty_trace.traceoptions.md) | _(Optional)_ |
 
-<b>Returns:</b>
+**Returns:**
 
 any
 

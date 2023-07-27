@@ -4,7 +4,7 @@
 
 ## TraceOptions.HeaderName property
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 HeaderName: string;

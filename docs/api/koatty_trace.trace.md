@@ -6,7 +6,7 @@
 
 Trace middleware
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 export declare function Trace(options: TraceOptions, app: Koatty): Koa.Middleware;
@@ -19,7 +19,7 @@ export declare function Trace(options: TraceOptions, app: Koatty): Koa.Middlewar
 |  options | [TraceOptions](./koatty_trace.traceoptions.md) |  |
 |  app | Koatty |  |
 
-<b>Returns:</b>
+**Returns:**
 
 Koa.Middleware
 

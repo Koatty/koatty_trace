@@ -4,7 +4,7 @@
 
 ## TraceOptions.IdFactory property
 
-<b>Signature:</b>
+**Signature:**
 
 ```typescript
 IdFactory: any;
