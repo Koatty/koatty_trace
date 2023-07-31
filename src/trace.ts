@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-07-31 21:14:46
+ * @LastEditTime: 2023-07-31 21:23:54
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -111,6 +111,7 @@ export function Trace(options: TraceOptions, app: Koatty): Koa.Middleware {
       requestId = <string>ctx.headers[requestIdName] || <string>ctx.query[requestIdName];
     }
     requestId = requestId || GetTraceId(options);
+
     if (openTrace) {
       let span: Span;
       if (tracer) {
