@@ -9,7 +9,7 @@ Trace middleware
 **Signature:**
 
 ```typescript
-export declare function Trace(options: TraceOptions, app: Koatty): Koa.Middleware;
+export declare function Trace(options: TraceOptions, app: Koatty): (ctx: KoattyContext, next: KoattyNext) => Promise<import("http").ServerResponse<import("http").IncomingMessage>>;
 ```
 
 ## Parameters
@@ -21,7 +21,7 @@ export declare function Trace(options: TraceOptions, app: Koatty): Koa.Middlewar
 
 **Returns:**
 
-Koa.Middleware
+(ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;import("http").ServerResponse&lt;import("http").IncomingMessage&gt;&gt;
 
 {<!-- -->\*<!-- -->} {<!-- -->Koa.Middleware<!-- -->}
 

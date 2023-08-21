@@ -18,6 +18,7 @@ export interface TraceOptions
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [HeaderName](./koatty_trace.traceoptions.headername.md) |  | string |  |
 |  [IdFactory](./koatty_trace.traceoptions.idfactory.md) |  | any |  |
+|  [RequestIdHeaderName](./koatty_trace.traceoptions.requestidheadername.md) |  | string |  |
+|  [RequestIdName](./koatty_trace.traceoptions.requestidname.md) |  | string |  |
 
