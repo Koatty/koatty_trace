@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.3](https://github.com/koatty/koatty_trace/compare/v1.9.1...v1.9.3) (2023-08-21)
+
+
+### Bug Fixes
+
+* disable async_hook ([ede8b32](https://github.com/koatty/koatty_trace/commit/ede8b32d875271f232c2a31122ca81583ce69438))
+* output requestid ([b154c9f](https://github.com/koatty/koatty_trace/commit/b154c9fc755a5fbc8c920600bcc4efcd3c57ede6))
+* requestid ([601eefa](https://github.com/koatty/koatty_trace/commit/601eefaf6bba70da6295f5c66f818a3775b8c427))
+* span ubdefined ([3802e46](https://github.com/koatty/koatty_trace/commit/3802e46254cf60c424f8faaf561efea5c6e9d066))
+
 ### [1.9.2](https://github.com/koatty/koatty_trace/compare/v1.9.1...v1.9.2) (2023-07-27)
 
 
