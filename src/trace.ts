@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-08-21 15:51:19
+ * @LastEditTime: 2023-08-21 16:13:02
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -92,11 +92,11 @@ export function Trace(options: TraceOptions, app: Koatty) {
       } else if (ctx.protocol === "ws" || ctx.protocol === "wss") {
         // allow bypassing koa
         ctx.respond = false;
-        ctx.set(options.RequestIdName, requestId);
+        ctx.set(options.RequestIdHeaderName, requestId);
         await wsHandler(ctx, next, { timeout, requestId, encoding, terminated, span });
       } else {
         // response header
-        ctx.set(options.RequestIdName, requestId);
+        ctx.set(options.RequestIdHeaderName, requestId);
         await httpHandler(ctx, next, { timeout, requestId, encoding, terminated, span });
       }
       return respond(ctx);
