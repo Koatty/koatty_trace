@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.4](https://github.com/koatty/koatty_trace/compare/v1.9.3...v1.9.4) (2023-08-21)
+
+
+### Bug Fixes
+
+* requestid header name ([32491fa](https://github.com/koatty/koatty_trace/commit/32491fa2cd0d391d68bf5958403e122fae96d18d))
+
 ### [1.9.3](https://github.com/koatty/koatty_trace/compare/v1.9.1...v1.9.3) (2023-08-21)
 
 
