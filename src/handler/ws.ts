@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2023-07-27 23:32:51
+ * @LastEditTime: 2023-09-12 10:50:14
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -12,7 +12,7 @@ import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
 import { catcher } from "../catcher";
 import { Span, Tags } from "opentracing";
-import { HttpStatusCode, HttpStatusCodeMap } from "./code";
+import { HttpStatusCode, HttpStatusCodeMap } from "../code";
 
 /**
  * wsHandler
@@ -98,25 +98,3 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
 
 }
 
-/**
- * Websocket Exception handler
- *
- * @export
- * @param {KoattyContext} ctx
- * @param {Exception} err
- * @returns {*}  {void}
- */
-export function wsExceptionHandler(ctx: any, err: Exception): void {
-  try {
-    ctx.status = ctx.status || 500;
-    if (HttpStatusCodeMap.has(err.status)) {
-      ctx.status = <HttpStatusCode>err.status;
-    }
-    const msg = err.message || ctx.message || "";
-    const body = `{"code":${err.code || 1},"message":"${msg}","data":${ctx.body ? JSON.stringify(ctx.body) : (ctx.body || null)}}`;
-    return ctx.websocket.send(body);
-  } catch (error) {
-    Logger.Error(error);
-    return null;
-  }
-}

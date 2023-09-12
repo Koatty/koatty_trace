@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2023-07-27 23:30:42
+ * @LastEditTime: 2023-09-12 10:50:06
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -11,7 +11,7 @@ import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
 import { Span, Tags } from "opentracing";
-import { HttpStatusCode, HttpStatusCodeMap } from "./code";
+import { HttpStatusCode, HttpStatusCodeMap } from "../code";
 
 /**
  * httpHandler
@@ -81,35 +81,5 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
     return catcher(ctx, err);
   } finally {
     clearTimeout(response.timeout);
-  }
-}
-
-/**
- * HTTP Exception handler
- *
- * @export
- * @param {KoattyContext} ctx
- * @param {Exception} err
- * @returns {*}  
- */
-export function httpExceptionHandler(ctx: any, err: Exception) {
-  try {
-    ctx.status = ctx.status || 500;
-    if (HttpStatusCodeMap.has(err.status)) {
-      ctx.status = <HttpStatusCode>err.status;
-    }
-
-    let contentType = 'application/json';
-    if (ctx.encoding !== false) {
-      contentType = `${contentType}; charset=${ctx.encoding}`;
-    }
-    ctx.type = contentType;
-    const msg = err.message || ctx.message || "";
-    const body = `{"code":${err.code || 1},"message":"${msg}","data":${ctx.body ? JSON.stringify(ctx.body) : (ctx.body || null)}}`;
-    ctx.set("Content-Length", `${Buffer.byteLength(body)}`);
-    return ctx.res.end(body);
-  } catch (error) {
-    Logger.Error(error);
-    return null;
   }
 }

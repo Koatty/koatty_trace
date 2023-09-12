@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2023-07-27 23:32:21
+ * @LastEditTime: 2023-09-12 10:50:17
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -12,7 +12,7 @@ import { Exception, isPrevent, StatusCodeConvert } from "koatty_exception";
 import { catcher } from '../catcher';
 import { Span, Tags } from "opentracing";
 import { StatusBuilder } from "@grpc/grpc-js";
-import { GrpcStatusCodeMap, HttpStatusCodeMap } from "./code";
+import { GrpcStatusCodeMap, HttpStatusCodeMap } from "../code";
 
 /**
  * gRPCHandler
@@ -85,37 +85,5 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
   } finally {
     ctx.res.emit("finish");
     clearTimeout(response.timeout);
-  }
-}
-
-
-/**
- * gRPC Exception handler
- *
- * @export
- * @param {KoattyContext} ctx
- * @param {Exception} err
- * @returns {*}  {Promise<any>}
- */
-export function gRPCExceptionHandler(ctx: any, err: Exception): Promise<any> {
-  try {
-    let errObj, code = err.code ?? 2;
-    // http status convert to grpc status
-    const status = err.status || ctx.status;
-    if (!err.code && HttpStatusCodeMap.has(status)) {
-      code = StatusCodeConvert(status);
-    }
-    const body = ctx.body || err.message || GrpcStatusCodeMap.get(code) || null;
-
-    if (body) {
-      errObj = new StatusBuilder().withCode(code).withDetails(body).build();
-    } else {
-      errObj = new StatusBuilder().withCode(code).build();
-    }
-    return ctx.rpc.callback(errObj, null);
-  } catch (error) {
-    Logger.Error(error);
-    ctx.rpc.callback(new StatusBuilder().withCode(2).build(), null);
-    return;
   }
 }
