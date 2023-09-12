@@ -4,20 +4,11 @@
 
 ## koatty\_trace package
 
-## Classes
-
-|  Class | Description |
-|  --- | --- |
-|  [Exception](./koatty_trace.exception.md) | <p>Predefined runtime exception</p><p>  HttpError  {<!-- -->Error<!-- -->}</p> |
-
 ## Functions
 
 |  Function | Description |
 |  --- | --- |
-|  [ExceptionHandler()](./koatty_trace.exceptionhandler.md) | <p>Indicates that an decorated class is a "ExceptionHandler". @<!-- -->ExceptionHandler()</p><p>export class BusinessException extends Exception { constructor(message: string, code: number, status: number) { ... } handler(ctx: KoattyContext) {</p><p>...//Handling business exceptions</p><p>} }</p> |
 |  [GetTraceId(options)](./koatty_trace.gettraceid.md) | <p>GetTraceId</p> |
-|  [isPrevent(err)](./koatty_trace.isprevent.md) | Check is prevent error |
-|  [prevent()](./koatty_trace.prevent.md) | Prevent next process |
 |  [Trace(options, app)](./koatty_trace.trace.md) | Trace middleware |
 
 ## Interfaces
@@ -25,10 +16,4 @@
 |  Interface | Description |
 |  --- | --- |
 |  [TraceOptions](./koatty_trace.traceoptions.md) | <p>TraceOptions</p><p>  TraceOptions</p> |
-
-## Variables
-
-|  Variable | Description |
-|  --- | --- |
-|  [isException](./koatty_trace.isexception.md) | <p>Check if the error is a predefined exception</p><p> T</p> |
 
