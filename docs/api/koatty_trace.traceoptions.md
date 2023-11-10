@@ -8,7 +8,7 @@ TraceOptions
 
   TraceOptions
 
-**Signature:**
+<b>Signature:</b>
 
 ```typescript
 export interface TraceOptions 
@@ -16,9 +16,9 @@ export interface TraceOptions
 
 ## Properties
 
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [IdFactory](./koatty_trace.traceoptions.idfactory.md) |  | any |  |
-|  [RequestIdHeaderName](./koatty_trace.traceoptions.requestidheadername.md) |  | string |  |
-|  [RequestIdName](./koatty_trace.traceoptions.requestidname.md) |  | string |  |
+|  Property | Type | Description |
+|  --- | --- | --- |
+|  [IdFactory](./koatty_trace.traceoptions.idfactory.md) | any |  |
+|  [RequestIdHeaderName](./koatty_trace.traceoptions.requestidheadername.md) | string |  |
+|  [RequestIdName](./koatty_trace.traceoptions.requestidname.md) | string |  |
 

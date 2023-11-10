@@ -4,7 +4,7 @@
 
 ## TraceOptions.RequestIdHeaderName property
 
-**Signature:**
+<b>Signature:</b>
 
 ```typescript
 RequestIdHeaderName: string;

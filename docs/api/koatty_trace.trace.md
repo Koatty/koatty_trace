@@ -6,7 +6,7 @@
 
 Trace middleware
 
-**Signature:**
+<b>Signature:</b>
 
 ```typescript
 export declare function Trace(options: TraceOptions, app: Koatty): (ctx: KoattyContext, next: KoattyNext) => Promise<import("http").ServerResponse<import("http").IncomingMessage>>;
@@ -19,7 +19,7 @@ export declare function Trace(options: TraceOptions, app: Koatty): (ctx: KoattyC
 |  options | [TraceOptions](./koatty_trace.traceoptions.md) |  |
 |  app | Koatty |  |
 
-**Returns:**
+<b>Returns:</b>
 
 (ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;import("http").ServerResponse&lt;import("http").IncomingMessage&gt;&gt;
 
