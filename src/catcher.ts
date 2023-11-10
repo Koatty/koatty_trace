@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2023-02-20 18:18:32
+ * @LastEditTime: 2023-11-10 22:16:15
  */
 
 import { IOCContainer } from "koatty_container";
@@ -27,7 +27,7 @@ export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Ex
   const span = <Span>ctx.getMetaData("tracer_span")[0];
   if (span) {
     span.setTag(Tags.ERROR, true);
-    span.setTag(Tags.HTTP_STATUS_CODE, (<T>err).status ?? 500);
+    span.setTag(Tags.HTTP_STATUS_CODE, (<T>err).status || 500);
     span.log({ 'event': 'error', 'error.object': err, 'message': err.message, 'stack': err.stack });
   }
   // 执行错误处理
@@ -38,9 +38,9 @@ export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Ex
   const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
   const message = (err.message).includes('"') ? (err.message).replaceAll('"', '\\"') : err.message;
   if (globalErrorHandler) {
-    return new globalErrorHandler(message, (<T>err).code ?? 1, (<T>err).status ?? 500).handler(ctx);
+    return new globalErrorHandler(message, (<T>err).code ?? 1, (<T>err).status || 500).handler(ctx);
   }
 
   // 使用默认错误处理
-  return new Exception(message, (<T>err).code ?? 1, (<T>err).status ?? 500).default(ctx);
+  return new Exception(message, (<T>err).code ?? 1, (<T>err).status || 500).default(ctx);
 }
