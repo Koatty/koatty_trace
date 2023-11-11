@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.2](https://github.com/koatty/koatty_trace/compare/v1.10.1...v1.10.2) (2023-11-11)
+
+
+### Bug Fixes
+
+* prevent set ctx.status ([2b68372](https://github.com/koatty/koatty_trace/commit/2b683728c810761d72b50529fddd409092ee3d42))
+
 ### [1.10.1](https://github.com/koatty/koatty_trace/compare/v1.10.0...v1.10.1) (2023-11-10)
 
 
