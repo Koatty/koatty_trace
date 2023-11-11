@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2023-11-11 10:37:22
+ * @LastEditTime: 2023-11-11 10:48:34
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -11,7 +11,6 @@ import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
 import { Span, Tags } from "opentracing";
-import { HttpStatusCode, HttpStatusCodeMap } from "../code";
 
 /**
  * httpHandler

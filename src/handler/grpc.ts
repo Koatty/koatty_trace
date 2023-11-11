@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2023-11-11 10:35:37
+ * @LastEditTime: 2023-11-11 10:48:40
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -11,8 +11,6 @@ import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent, StatusCodeConvert } from "koatty_exception";
 import { catcher } from '../catcher';
 import { Span, Tags } from "opentracing";
-import { StatusBuilder } from "@grpc/grpc-js";
-import { GrpcStatusCodeMap, HttpStatusCodeMap } from "../code";
 
 /**
  * gRPCHandler
