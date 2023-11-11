@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2023-09-12 10:50:17
+ * @LastEditTime: 2023-11-11 10:35:37
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -78,6 +78,7 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
   } catch (err: any) {
     // skip prevent errors
     if (isPrevent(err)) {
+      ctx.status = 500;
       ctx.rpc.callback(null, ctx.body ?? "");
       return null;
     }
