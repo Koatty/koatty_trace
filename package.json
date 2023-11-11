@@ -9,9 +9,8 @@
     "build:doc": "del-cli --force docs/api && npx api-documenter markdown --input temp --output docs/api",
     "build:dts": "del-cli --force temp && npx tsc && npx api-extractor run --local --verbose",
     "eslint": "eslint --ext .ts,.js ./",
-    "prepublishOnly": "npm test && npm run build",
+    "prepublishOnly": "npm test && npm run build && git push --follow-tags origin",
     "prerelease": "npm test && npm run build",
-    "pub": "git push --follow-tags origin && npm publish",
     "release": "standard-version",
     "release:minor": "npm run release -- --release-as minor",
     "test": "npm run eslint && jest --passWithNoTests"
@@ -89,7 +88,7 @@
     "koatty_exception": "^1.x.x",
     "koatty_lib": "^1.x.x",
     "opentracing": "^0.14.7",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.1"
   },
   "peerDependencies": {
     "koatty_container": "^1.x.x",
