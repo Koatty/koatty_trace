@@ -18,7 +18,11 @@ export interface TraceOptions
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [IdFactory](./koatty_trace.traceoptions.idfactory.md) |  | any |  |
-|  [RequestIdHeaderName](./koatty_trace.traceoptions.requestidheadername.md) |  | string |  |
-|  [RequestIdName](./koatty_trace.traceoptions.requestidname.md) |  | string |  |
+|  [AsyncHooks?](./koatty_trace.traceoptions.asynchooks.md) |  | boolean | _(Optional)_ |
+|  [Encoding?](./koatty_trace.traceoptions.encoding.md) |  | string | _(Optional)_ |
+|  [IdFactory?](./koatty_trace.traceoptions.idfactory.md) |  | any | _(Optional)_ |
+|  [OpenTrace?](./koatty_trace.traceoptions.opentrace.md) |  | boolean | _(Optional)_ |
+|  [RequestIdHeaderName?](./koatty_trace.traceoptions.requestidheadername.md) |  | string | _(Optional)_ |
+|  [RequestIdName?](./koatty_trace.traceoptions.requestidname.md) |  | string | _(Optional)_ |
+|  [Timeout?](./koatty_trace.traceoptions.timeout.md) |  | number | _(Optional)_ |
 

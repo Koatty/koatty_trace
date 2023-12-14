@@ -7,5 +7,5 @@
 **Signature:**
 
 ```typescript
-RequestIdHeaderName: string;
+RequestIdHeaderName?: string;
 ```
