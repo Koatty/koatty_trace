@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-08-21 16:13:02
+ * @LastEditTime: 2023-12-14 22:28:02
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -36,6 +36,10 @@ export interface TraceOptions {
   RequestIdHeaderName: string;
   RequestIdName: string;
   IdFactory: any;
+  Timeout: number;
+  Encoding: string;
+  OpenTrace: boolean;
+  AsyncHooks: boolean;
 }
 
 /** 
@@ -45,6 +49,10 @@ const defaultOptions = {
   RequestIdHeaderName: 'X-Request-Id',
   RequestIdName: "requestId",
   IdFactory: uuidv4,
+  Timeout: 10000,
+  Encoding: 'utf-8',
+  OpenTrace: false,
+  AsyncHooks: false,
 };
 
 /**
@@ -56,14 +64,10 @@ const defaultOptions = {
  */
 export function Trace(options: TraceOptions, app: Koatty) {
   options = { ...defaultOptions, ...options };
-  const timeout = (app.config('http_timeout') || 10) * 1000;
-  const encoding = app.config('encoding') || 'utf-8';
-  const openTrace = app.config("open_trace") || false;
-  const asyncHooks = app.config("async_hooks") || false;
 
   // 
   let tracer: Tracer;
-  if (openTrace) {
+  if (options.OpenTrace) {
     tracer = app.getMetaData("tracer")[0];
     if (!tracer) {
       tracer = new Tracer();
@@ -83,7 +87,9 @@ export function Trace(options: TraceOptions, app: Koatty) {
     const respWapper = async (requestId: string, span?: Span) => {
       // metadata
       ctx.setMetaData(options.RequestIdName, requestId);
-
+      const timeout = options.Timeout;
+      const encoding = options.Encoding;
+      // 
       if (ctx.protocol === "grpc") {
         // allow bypassing koa
         ctx.respond = false;
@@ -112,7 +118,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
     }
     requestId = requestId || GetTraceId(options);
     let span: Span;
-    if (openTrace) {
+    if (options.OpenTrace) {
       const serviceName = app.name || "unknownKoattyProject";
       const wireCtx = tracer.extract(FORMAT_HTTP_HEADERS, ctx.req.headers);
       if (wireCtx != null) {
@@ -123,7 +129,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
       span.addTags({ requestId });
       ctx.setMetaData("tracer_span", span);
     }
-    if (asyncHooks) {
+    if (options.AsyncHooks) {
       return asyncLocalStorage.run(requestId, () => {
         const asyncResource = createAsyncResource();
         wrapEmitter(ctx.req, asyncResource);
