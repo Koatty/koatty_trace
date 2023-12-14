@@ -1,6 +1,6 @@
 {
   "name": "koatty_trace",
-  "version": "1.10.3",
+  "version": "1.10.4",
   "description": "Full link tracking and error interception for koatty.",
   "scripts": {
     "build": "npm run build:js && npm run build:dts && npm run build:doc && npm run build:cp",
@@ -81,6 +81,7 @@
     "standard-version": "^9.x.x",
     "ts-jest": "^29.x.x",
     "ts-node": "^10.x.x",
+    "tslib": "^2.x.x",
     "typescript": "^4.x.x"
   },
   "dependencies": {
@@ -88,6 +89,7 @@
     "koatty_core": "^1.x.x",
     "koatty_exception": "^1.x.x",
     "koatty_lib": "^1.x.x",
+    "koatty_logger": "^2.x.x",
     "opentracing": "^0.14.7",
     "uuid": "^9.0.1"
   },
@@ -95,6 +97,7 @@
     "koatty_container": "^1.x.x",
     "koatty_core": "^1.x.x",
     "koatty_exception": "^1.x.x",
-    "koatty_lib": "^1.x.x"
+    "koatty_lib": "^1.x.x",
+    "koatty_logger": "^2.x.x"
   }
 }
