@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-12-14 22:28:02
+ * @LastEditTime: 2023-12-14 22:49:54
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -14,6 +14,7 @@ import { httpHandler } from './handler/http';
 import { gRPCHandler } from './handler/grpc';
 import { wsHandler } from './handler/ws';
 import { respond } from './respond';
+import { Helper } from "koatty_lib";
 
 /**
  * GetTraceId
@@ -22,7 +23,10 @@ import { respond } from './respond';
  * @returns {*}  
  */
 export function GetTraceId(options?: TraceOptions) {
-  const rid = options?.IdFactory()
+  let rid;
+  if (Helper.isFunction(options.IdFactory)) {
+    rid = options?.IdFactory();
+  }
   return rid || uuidv4();
 }
 
@@ -33,13 +37,13 @@ export function GetTraceId(options?: TraceOptions) {
  * @interface TraceOptions
  */
 export interface TraceOptions {
-  RequestIdHeaderName: string;
-  RequestIdName: string;
-  IdFactory: any;
-  Timeout: number;
-  Encoding: string;
-  OpenTrace: boolean;
-  AsyncHooks: boolean;
+  RequestIdHeaderName?: string;
+  RequestIdName?: string;
+  IdFactory?: any;
+  Timeout?: number;
+  Encoding?: string;
+  OpenTrace?: boolean;
+  AsyncHooks?: boolean;
 }
 
 /** 
