@@ -65,7 +65,7 @@
     "@types/koa": "^2.x.x",
     "@types/node": "^18.x.x",
     "@types/uuid": "^9.x.x",
-    "@types/ws": "^8.5.4",
+    "@types/ws": "^8.x.x",
     "@typescript-eslint/eslint-plugin": "^5.x.x",
     "@typescript-eslint/parser": "^5.x.x",
     "conventional-changelog-cli": "^2.x.x",
