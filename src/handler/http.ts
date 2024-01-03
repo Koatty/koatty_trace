@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2023-11-11 10:48:34
+ * @LastEditTime: 2024-01-03 13:50:10
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -73,11 +73,6 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
     }
     return null;
   } catch (err: any) {
-    // skip prevent errors
-    if (isPrevent(err)) {
-      ctx.status = 500;
-      return null;
-    }
     return catcher(ctx, err);
   } finally {
     clearTimeout(response.timeout);
