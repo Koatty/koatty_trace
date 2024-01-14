@@ -59,7 +59,7 @@ devDependencies:
     specifier: ^9.x.x
     version: 9.0.7
   '@types/ws':
-    specifier: ^8.5.4
+    specifier: ^8.x.x
     version: 8.5.10
   '@typescript-eslint/eslint-plugin':
     specifier: ^5.x.x
