@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-01-14 22:03:15
+ * @LastEditTime: 2024-01-14 23:19:54
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -140,12 +140,12 @@ export function Trace(options: TraceOptions, app: Koatty) {
       case "grpc":
         const request: any = ctx.getMetaData("_body")[0] || {};
         requestId = `${ctx.getMetaData(options.RequestIdName)[0]}` ||
-          `${request[options.RequestIdName]}`;
+          `${request[options.RequestIdName] || ''}`;
         break;
       default:
         const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
         requestId = <string>ctx.headers[requestIdHeaderName] ||
-          `${ctx.query[options.RequestIdName]}`;
+          `${ctx.query[options.RequestIdName] || ''}`;
         break;
     }
 
