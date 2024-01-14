@@ -20,7 +20,7 @@ export interface TraceOptions
 |  --- | --- | --- | --- |
 |  [AsyncHooks?](./koatty_trace.traceoptions.asynchooks.md) |  | boolean | _(Optional)_ |
 |  [Encoding?](./koatty_trace.traceoptions.encoding.md) |  | string | _(Optional)_ |
-|  [IdFactory?](./koatty_trace.traceoptions.idfactory.md) |  | any | _(Optional)_ |
+|  [IdFactory?](./koatty_trace.traceoptions.idfactory.md) |  | Function | _(Optional)_ |
 |  [OpenTrace?](./koatty_trace.traceoptions.opentrace.md) |  | boolean | _(Optional)_ |
 |  [RequestIdHeaderName?](./koatty_trace.traceoptions.requestidheadername.md) |  | string | _(Optional)_ |
 |  [RequestIdName?](./koatty_trace.traceoptions.requestidname.md) |  | string | _(Optional)_ |

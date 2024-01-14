@@ -7,5 +7,5 @@
 **Signature:**
 
 ```typescript
-IdFactory?: any;
+IdFactory?: Function;
 ```
