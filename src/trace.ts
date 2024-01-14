@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-01-14 11:59:33
+ * @LastEditTime: 2024-01-14 22:03:15
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -65,8 +65,8 @@ const defaultOptions = {
  * @description: 
  * @return {*}
  */
-const respWapper = async <T extends Exception>(ctx: KoattyContext, next: KoattyNext, options: TraceOptions,
-  terminated: boolean, requestId: string, globalErrorHandler: T, span?: Span) => {
+const respWapper = async <T extends Exception>(ctx: KoattyContext, next: KoattyNext,
+  options: TraceOptions, terminated: boolean, requestId: string, globalErrorHandler: T, span?: Span) => {
   // metadata
   ctx.setMetaData(options.RequestIdName, requestId);
   const timeout = options.Timeout;
@@ -123,7 +123,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
     }
   }
   // global error handler class
-  const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
+  const geh: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
 
   return async (ctx: KoattyContext, next: KoattyNext) => {
     // server terminated
@@ -136,13 +136,19 @@ export function Trace(options: TraceOptions, app: Koatty) {
     }
     // 
     let requestId = '';
-    if (ctx.protocol === "grpc") {
-      const request: any = ctx.getMetaData("_body")[0] || {};
-      requestId = `${ctx.getMetaData(options.RequestIdName)[0]}` || <string>request[options.RequestIdName];
-    } else {
-      const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
-      requestId = <string>ctx.headers[requestIdHeaderName] || <string>ctx.query[options.RequestIdName];
+    switch (ctx.protocol) {
+      case "grpc":
+        const request: any = ctx.getMetaData("_body")[0] || {};
+        requestId = `${ctx.getMetaData(options.RequestIdName)[0]}` ||
+          `${request[options.RequestIdName]}`;
+        break;
+      default:
+        const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
+        requestId = <string>ctx.headers[requestIdHeaderName] ||
+          `${ctx.query[options.RequestIdName]}`;
+        break;
     }
+
     requestId = requestId || GetTraceId(options);
     let span: Span;
     // opten trace
@@ -163,9 +169,9 @@ export function Trace(options: TraceOptions, app: Koatty) {
         const asyncResource = createAsyncResource();
         wrapEmitter(ctx.req, asyncResource);
         wrapEmitter(ctx.res, asyncResource);
-        return respWapper(ctx, next, options, terminated, requestId, globalErrorHandler, span);
+        return respWapper(ctx, next, options, terminated, requestId, geh, span);
       });
     }
-    return respWapper(ctx, next, options, terminated, requestId, globalErrorHandler, span);
+    return respWapper(ctx, next, options, terminated, requestId, geh, span);
   }
 }
