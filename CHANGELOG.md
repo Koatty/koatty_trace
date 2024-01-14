@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.2-0](https://github.com/koatty/koatty_trace/compare/v1.11.1...v1.11.2-0) (2024-01-14)
+
+
+### Bug Fixes
+
+* requsetid取值 ([222ca8d](https://github.com/koatty/koatty_trace/commit/222ca8d13ac1148ad3d5c5a0cbad9e51ff3f78d8))
+
 ### [1.11.1](https://github.com/koatty/koatty_trace/compare/v1.11.1-0...v1.11.1) (2024-01-14)
 
 ### [1.11.1-0](https://github.com/koatty/koatty_trace/compare/v1.10.4...v1.11.1-0) (2024-01-14)
