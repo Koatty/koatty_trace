@@ -1,6 +1,6 @@
 {
   "name": "koatty_trace",
-  "version": "1.10.4",
+  "version": "1.11.1-0",
   "description": "Full link tracking and error interception for koatty.",
   "scripts": {
     "build": "npm run build:js && npm run build:dts && npm run build:doc && npm run build:cp",
@@ -13,6 +13,7 @@
     "prepublishOnly": "npm test && npm run build && git push --follow-tags origin",
     "prerelease": "npm test && npm run build",
     "release": "standard-version",
+    "release:pre": "npm run release -- --prerelease",
     "release:minor": "npm run release -- --release-as minor",
     "test": "npm run eslint && jest --passWithNoTests"
   },
