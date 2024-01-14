@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2024-01-03 13:50:10
+ * @LastEditTime: 2024-01-14 11:53:13
  */
 import { Helper } from "koatty_lib";
 import { catcher } from "../catcher";
@@ -39,7 +39,6 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
     span.setTag(Tags.HTTP_METHOD, ctx.method);
   }
 
-
   // response finish
   ctx.res.once('finish', () => {
     const now = Date.now();
@@ -73,7 +72,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: any)
     }
     return null;
   } catch (err: any) {
-    return catcher(ctx, err);
+    return catcher(ctx, span, err, ext.globalErrorHandler);
   } finally {
     clearTimeout(response.timeout);
   }

@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-01-03 13:49:59
+ * @LastEditTime: 2024-01-14 11:55:12
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -21,8 +21,9 @@ import { Span, Tags } from "opentracing";
 export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any): Promise<any> {
   const timeout = ext.timeout || 10000;
   // set ctx start time
-  const startTime = Date.now();
-  ctx.setMetaData("startTime", `${startTime}`);
+  Helper.define(ctx, 'startTime', Date.now());
+  // originalPath
+  Helper.define(ctx, 'originalPath', ctx.path);
 
   ctx.rpc.call.metadata.set('X-Powered-By', 'Koatty');
   ctx.rpc.call.sendMetadata(ctx.rpc.call.metadata);
@@ -37,10 +38,8 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
   // event callback
   const finish = () => {
     const now = Date.now();
-    const originalPath = ctx.getMetaData("originalPath")[0];
-    const startTime = ctx.getMetaData("startTime")[0];
     const status = StatusCodeConvert(ctx.status);
-    const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${startTime}","duration":"${(now - Helper.toInt(startTime)) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${originalPath}"}`;
+    const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
     Logger[(status > 0 ? 'Error' : 'Info')](msg);
     if (span) {
       span.log({ "request": msg });
@@ -74,7 +73,7 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
     ctx.rpc.callback(null, ctx.body);
     return null;
   } catch (err: any) {
-    return catcher(ctx, err);
+    return catcher(ctx, span, err, ext.globalErrorHandler);
   } finally {
     ctx.res.emit("finish");
     clearTimeout(response.timeout);

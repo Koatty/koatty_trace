@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2024-01-03 14:26:45
+ * @LastEditTime: 2024-01-14 11:39:21
  */
 
 import { IOCContainer } from "koatty_container";
@@ -20,11 +20,10 @@ import { Span, Tags } from "opentracing";
 * @param {KoattyContext} ctx
 * @param {(Exception | T)} err
 */
-export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T) {
+export function catcher<T extends Exception>(ctx: KoattyContext, span: Span, err: Error | Exception | T, globalErrorHandler: any) {
   // LOG
   Logger.Error(err.stack);
 
-  const span = <Span>ctx.getMetaData("tracer_span")[0];
   if (span) {
     span.setTag(Tags.ERROR, true);
     span.setTag(Tags.HTTP_STATUS_CODE, (<T>err).status || 500);
@@ -35,7 +34,6 @@ export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Ex
     return (<any>err).handler(ctx);
   }
   // 执行全局异常处理
-  const globalErrorHandler: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
   const message = (err.message).includes('"') ? (err.message).replaceAll('"', '\\"') : err.message;
   if (globalErrorHandler) {
     return new globalErrorHandler(message, (<T>err).code ?? 1, (<T>err).status || 500).handler(ctx);
