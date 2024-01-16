@@ -8,7 +8,6 @@
 
 |  Function | Description |
 |  --- | --- |
-|  [GetTraceId(options)](./koatty_trace.gettraceid.md) | <p>GetTraceId</p> |
 |  [Trace(options, app)](./koatty_trace.trace.md) | Trace middleware |
 
 ## Interfaces
