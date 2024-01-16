@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.2](https://github.com/koatty/koatty_trace/compare/v1.11.2-0...v1.11.2) (2024-01-16)
+
+
+### Refactor
+
+* extensionOptions ([d980db7](https://github.com/koatty/koatty_trace/commit/d980db7521a381c86373168bdb5fce324909758c))
+
 ### [1.11.2-0](https://github.com/koatty/koatty_trace/compare/v1.11.1...v1.11.2-0) (2024-01-14)
 
 
