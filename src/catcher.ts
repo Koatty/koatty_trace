@@ -3,10 +3,9 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2024-01-14 11:39:21
+ * @LastEditTime: 2024-01-16 08:10:27
  */
 
-import { IOCContainer } from "koatty_container";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isException } from "koatty_exception";
@@ -20,7 +19,8 @@ import { Span, Tags } from "opentracing";
 * @param {KoattyContext} ctx
 * @param {(Exception | T)} err
 */
-export function catcher<T extends Exception>(ctx: KoattyContext, span: Span, err: Error | Exception | T, globalErrorHandler: any) {
+export function catcher<T extends Exception>(ctx: KoattyContext, span: Span,
+  err: Error | Exception | T, globalErrorHandler: any) {
   // LOG
   Logger.Error(err.stack);
 

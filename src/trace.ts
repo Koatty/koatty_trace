@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-01-14 23:19:54
+ * @LastEditTime: 2024-01-16 08:03:53
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -19,19 +19,17 @@ import { respond } from './respond';
 import { Exception } from "koatty_exception";
 
 /**
- * GetTraceId
- *
- * @export
- * @returns {*}  
+ * @description: extensionOptions
+ * @return {*}
  */
-export function GetTraceId(options?: TraceOptions) {
-  let rid;
-  if (Helper.isFunction(options.IdFactory)) {
-    rid = options?.IdFactory();
-  }
-  return rid || uuidv4();
+interface extensionOptions<T extends Exception> {
+  timeout?: number,
+  requestId?: string,
+  encoding?: string,
+  terminated?: boolean,
+  span?: Span,
+  globalErrorHandler?: T,
 }
-
 /**
  * TraceOptions
  *
@@ -66,37 +64,27 @@ const defaultOptions = {
  * @return {*}
  */
 const respWapper = async <T extends Exception>(ctx: KoattyContext, next: KoattyNext,
-  options: TraceOptions, terminated: boolean, requestId: string, globalErrorHandler: T, span?: Span) => {
+  options: TraceOptions, ext: extensionOptions<T>) => {
   // metadata
-  ctx.setMetaData(options.RequestIdName, requestId);
-  const timeout = options.Timeout;
-  const encoding = options.Encoding;
-  const ext = {
-    timeout,
-    requestId,
-    encoding,
-    terminated,
-    span,
-    globalErrorHandler,
-  }
-
+  ctx.setMetaData(options.RequestIdName, ext.requestId);
+  // protocol handler
   switch (ctx.protocol) {
     case "grpc":
       // allow bypassing koa
       ctx.respond = false;
-      ctx.rpc.call.metadata.set(options.RequestIdName, requestId);
+      ctx.rpc.call.metadata.set(options.RequestIdName, ext.requestId);
       await gRPCHandler(ctx, next, ext);
       break;
     case "ws":
     case "wss":
       // allow bypassing koa
       ctx.respond = false;
-      ctx.set(options.RequestIdHeaderName, requestId);
+      ctx.set(options.RequestIdHeaderName, ext.requestId);
       await wsHandler(ctx, next, ext);
       break
     default:
       // response header
-      ctx.set(options.RequestIdHeaderName, requestId);
+      ctx.set(options.RequestIdHeaderName, ext.requestId);
       await httpHandler(ctx, next, ext);
       break;
   }
@@ -149,7 +137,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
         break;
     }
 
-    requestId = requestId || GetTraceId(options);
+    requestId = requestId || getTraceId(options);
     let span: Span;
     // opten trace
     if (options.OpenTrace) {
@@ -163,15 +151,39 @@ export function Trace(options: TraceOptions, app: Koatty) {
       span.addTags({ requestId });
       ctx.setMetaData("tracer_span", span);
     }
+
+    const ext = {
+      timeout: options.Timeout,
+      encoding: options.Encoding,
+      requestId,
+      terminated: terminated,
+      span,
+      globalErrorHandler: geh,
+    }
     // open async hooks
     if (options.AsyncHooks) {
       return asyncLocalStorage.run(requestId, () => {
         const asyncResource = createAsyncResource();
         wrapEmitter(ctx.req, asyncResource);
         wrapEmitter(ctx.res, asyncResource);
-        return respWapper(ctx, next, options, terminated, requestId, geh, span);
+        return respWapper(ctx, next, options, ext);
       });
     }
-    return respWapper(ctx, next, options, terminated, requestId, geh, span);
+    return respWapper(ctx, next, options, ext);
   }
+}
+
+
+/**
+ * getTraceId
+ *
+ * @export
+ * @returns {*}  
+ */
+function getTraceId(options?: TraceOptions) {
+  let rid;
+  if (Helper.isFunction(options.IdFactory)) {
+    rid = options?.IdFactory();
+  }
+  return rid || uuidv4();
 }

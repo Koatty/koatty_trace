@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-01-14 11:55:12
+ * @LastEditTime: 2024-01-16 08:09:29
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -24,6 +24,8 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
   Helper.define(ctx, 'startTime', Date.now());
   // originalPath
   Helper.define(ctx, 'originalPath', ctx.path);
+  // Encoding
+  ctx.encoding = ext.encoding;
 
   ctx.rpc.call.metadata.set('X-Powered-By', 'Koatty');
   ctx.rpc.call.sendMetadata(ctx.rpc.call.metadata);
