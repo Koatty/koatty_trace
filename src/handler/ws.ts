@@ -3,14 +3,14 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2024-01-14 11:32:12
+ * @LastEditTime: 2024-01-22 00:44:33
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent } from "koatty_exception";
-import { catcher } from "../catcher";
+import { catcher, extensionOptions } from "../catcher";
 import { Span, Tags } from "opentracing";
 
 /**
@@ -19,15 +19,8 @@ import { Span, Tags } from "opentracing";
  * @param {Koatty} app
  * @returns {*}  
  */
-export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): Promise<any> {
+export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
   const timeout = ext.timeout || 10000;
-
-  // set ctx start time
-  Helper.define(ctx, 'startTime', Date.now());
-  // http version
-  Helper.define(ctx, 'version', ctx.req.httpVersion);
-  // originalPath
-  Helper.define(ctx, 'originalPath', ctx.path);
   // Encoding
   ctx.encoding = ext.encoding;
   // auto send security header
@@ -45,7 +38,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
   // after send message event
   const finish = () => {
     const now = Date.now();
-    const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
+    const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
     if (span) {
       span.log({ "request": msg });
@@ -79,12 +72,12 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: any): 
       ctx.status = 200;
     }
     if (ctx.status >= 400) {
-      throw new Exception("", 1, ctx.status);
+      throw new Exception(ctx.message, 1, ctx.status);
     }
     ctx.websocket.send(inspect(ctx.body || ''), null);
     return null;
   } catch (err: any) {
-    return catcher(ctx, span, err, ext.globalErrorHandler);
+    return catcher(ctx, err, span, ext.globalErrorHandler, ext);
   } finally {
     ctx.res.emit("finish");
     clearTimeout(response.timeout);

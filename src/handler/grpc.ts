@@ -3,13 +3,13 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-01-16 08:09:29
+ * @LastEditTime: 2024-01-21 23:01:20
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isPrevent, StatusCodeConvert } from "koatty_exception";
-import { catcher } from '../catcher';
+import { catcher, extensionOptions } from '../catcher';
 import { Span, Tags } from "opentracing";
 
 /**
@@ -18,12 +18,8 @@ import { Span, Tags } from "opentracing";
  * @param {Koatty} app
  * @returns {*}  
  */
-export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any): Promise<any> {
+export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
   const timeout = ext.timeout || 10000;
-  // set ctx start time
-  Helper.define(ctx, 'startTime', Date.now());
-  // originalPath
-  Helper.define(ctx, 'originalPath', ctx.path);
   // Encoding
   ctx.encoding = ext.encoding;
 
@@ -41,7 +37,7 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
   const finish = () => {
     const now = Date.now();
     const status = StatusCodeConvert(ctx.status);
-    const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ext.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
+    const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
     Logger[(status > 0 ? 'Error' : 'Info')](msg);
     if (span) {
       span.log({ "request": msg });
@@ -70,12 +66,12 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: any)
       ctx.status = 200;
     }
     if (ctx.status >= 400) {
-      throw new Exception('', 0, ctx.status);
+      throw new Exception(ctx.message, 0, ctx.status);
     }
     ctx.rpc.callback(null, ctx.body);
     return null;
   } catch (err: any) {
-    return catcher(ctx, span, err, ext.globalErrorHandler);
+    return catcher(ctx, err, span, ext.globalErrorHandler, ext);
   } finally {
     ctx.res.emit("finish");
     clearTimeout(response.timeout);

@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-01-21 12:34:46
+ * @LastEditTime: 2024-01-24 10:42:07
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -15,21 +15,8 @@ import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
 import { httpHandler } from './handler/http';
 import { gRPCHandler } from './handler/grpc';
 import { wsHandler } from './handler/ws';
-import { respond } from './respond';
-import { Exception } from "koatty_exception";
+import { extensionOptions } from "./catcher";
 
-/**
- * @description: extensionOptions
- * @return {*}
- */
-interface extensionOptions<T extends Exception> {
-  timeout?: number,
-  requestId?: string,
-  encoding?: string,
-  terminated?: boolean,
-  span?: Span,
-  globalErrorHandler?: T,
-}
 /**
  * TraceOptions
  *
@@ -63,33 +50,28 @@ const defaultOptions = {
  * @description: 
  * @return {*}
  */
-const respWapper = async <T extends Exception>(ctx: KoattyContext, next: KoattyNext,
-  options: TraceOptions, ext: extensionOptions<T>) => {
+const respWapper = async (ctx: KoattyContext, next: KoattyNext,
+  options: TraceOptions, ext: extensionOptions) => {
   // metadata
-  ctx.setMetaData(options.RequestIdName, ext.requestId);
+  ctx.setMetaData(options.RequestIdName, ctx.requestId);
   // protocol handler
   switch (ctx.protocol) {
     case "grpc":
       // allow bypassing koa
       ctx.respond = false;
-      ctx.rpc.call.metadata.set(options.RequestIdName, ext.requestId);
-      await gRPCHandler(ctx, next, ext);
-      break;
+      ctx.rpc.call.metadata.set(options.RequestIdName, ctx.requestId);
+      return gRPCHandler(ctx, next, ext);
     case "ws":
     case "wss":
       // allow bypassing koa
       ctx.respond = false;
-      ctx.set(options.RequestIdHeaderName, ext.requestId);
-      await wsHandler(ctx, next, ext);
-      break
+      ctx.set(options.RequestIdHeaderName, ctx.requestId);
+      return wsHandler(ctx, next, ext);
     default:
       // response header
-      ctx.set(options.RequestIdHeaderName, ext.requestId);
-      await httpHandler(ctx, next, ext);
-      break;
+      ctx.set(options.RequestIdHeaderName, ctx.requestId);
+      return httpHandler(ctx, next, ext);
   }
-
-  return respond(ctx);
 }
 
 /**
@@ -114,6 +96,11 @@ export function Trace(options: TraceOptions, app: Koatty) {
   const geh: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
 
   return async (ctx: KoattyContext, next: KoattyNext) => {
+    // set ctx start time
+    Helper.define(ctx, 'startTime', Date.now());
+    // originalPath
+    Helper.define(ctx, 'originalPath', ctx.path);
+
     // server terminated
     let terminated = false;
     if (app.server.status === 503) {
@@ -126,11 +113,15 @@ export function Trace(options: TraceOptions, app: Koatty) {
     let requestId = '';
     switch (ctx.protocol) {
       case "grpc":
+        // http version
+        Helper.define(ctx, 'version', "2.0");
         const request: any = ctx.getMetaData("_body")[0] || {};
         requestId = `${ctx.getMetaData(options.RequestIdName)[0]}` ||
           `${request[options.RequestIdName] || ''}`;
         break;
       default:
+        // http version
+        Helper.define(ctx, 'version', ctx.req.httpVersion);
         const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
         requestId = <string>ctx.headers[requestIdHeaderName] ||
           `${ctx.query[options.RequestIdName] || ''}`;
@@ -138,6 +129,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
     }
 
     requestId = requestId || getTraceId(options);
+    Helper.define(ctx, 'requestId', requestId);
     let span: Span;
     // opten trace
     if (options.OpenTrace) {
@@ -153,6 +145,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
     }
 
     const ext = {
+      debug: app.appDebug,
       timeout: options.Timeout,
       encoding: options.Encoding,
       requestId,

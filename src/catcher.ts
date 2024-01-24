@@ -3,38 +3,50 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2024-01-21 12:56:26
+ * @LastEditTime: 2024-01-24 10:45:24
  */
 
 import { KoattyContext } from "koatty_core";
-import { DefaultLogger as Logger } from "koatty_logger";
 import { Exception, isException } from "koatty_exception";
-import { Helper } from "koatty_lib";
 import { Span, Tags } from "opentracing";
 
 /**
-* Global Error handler
-*
-* @template T
-* @param {KoattyContext} ctx
-* @param {(Exception | T)} err
-*/
-export function catcher<T extends Exception>(ctx: KoattyContext, span: Span,
-  err: Error | Exception | T, globalErrorHandler: any) {
-  // 如果是异常对象，直接返回
-  if (isException(err)) {
-    return (<Exception>err).setSpan(span).handler(ctx);
+ * @description: extensionOptions
+ * @return {*}
+ */
+export interface extensionOptions {
+  timeout?: number,
+  encoding?: string,
+  terminated?: boolean,
+  span?: Span,
+  globalErrorHandler?: any,
+}
+/**
+ * Global Error handler
+ * @param ctx 
+ * @param err 
+ * @param span 
+ * @param globalErrorHandler 
+ * @param ext 
+ * @returns 
+ */
+export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T, span?: Span,
+  globalErrorHandler?: any, ext?: extensionOptions) {
+  err.message = err.message || ctx.message || "";
+  if (err.message.includes('"')) {
+    err.message = err.message.replaceAll('"', '\\"');
   }
-
   // 执行自定义全局异常处理
-  const message = (err.message).includes('"') ? (err.message).replaceAll('"', '\\"') : err.message;
   if (globalErrorHandler) {
-    const ins: Exception = new globalErrorHandler(message, (<T>err).code ?? 1, (<T>err).status || 500, err.stack, span);
+    const ins: Exception = new globalErrorHandler(err.message, (<T>err).code ?? 1, (<T>err).status || 500, err.stack, span);
     if (ins.handler) {
       return ins.handler(ctx);
     }
   }
-
+  // 如果是异常对象，直接返回
+  if (isException(err)) {
+    return (<Exception>err).setSpan(span).handler(ctx);
+  }
   // 使用默认异常处理
-  return new Exception(message, (<T>err).code ?? 1, (<T>err).status || 500, err.stack, span).handler(ctx);
+  return new Exception(err.message, 1, 500, err.stack, span).handler(ctx);
 }
