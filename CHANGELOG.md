@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.1](https://github.com/koatty/koatty_trace/compare/v1.12.0...v1.12.1) (2024-01-24)
+
+
+### Bug Fixes
+
+* setTag ([e8ce324](https://github.com/koatty/koatty_trace/commit/e8ce3247a3b1ff1ecd55fa26c4541c05a0867d0b))
+
+
+### Refactor
+
+* exception ([57b7f51](https://github.com/koatty/koatty_trace/commit/57b7f511dcbd891e2b15f2e3cf8885cf4b1d87f4))
+
 ## [1.12.0](https://github.com/koatty/koatty_trace/compare/v1.11.2...v1.12.0) (2024-01-21)
 
 
