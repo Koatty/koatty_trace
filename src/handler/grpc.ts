@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-01-21 23:01:20
+ * @LastEditTime: 2024-01-24 11:01:51
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -40,6 +40,9 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
     const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
     Logger[(status > 0 ? 'Error' : 'Info')](msg);
     if (span) {
+      span.setTag(Tags.HTTP_STATUS_CODE, status);
+      span.setTag(Tags.HTTP_METHOD, ctx.method);
+      span.setTag(Tags.HTTP_URL, ctx.url);
       span.log({ "request": msg });
       span.finish();
     }
