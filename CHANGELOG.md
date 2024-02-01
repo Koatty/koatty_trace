@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.2](https://github.com/koatty/koatty_trace/compare/v1.12.1...v1.12.2) (2024-02-01)
+
+
+### Bug Fixes
+
+* remove code ([f03796c](https://github.com/koatty/koatty_trace/commit/f03796cc205cd20e9a078a893a0332b0e1b303da))
+* 优先执行返回的exception ([3794583](https://github.com/koatty/koatty_trace/commit/3794583f4605edee6cc775456d3307b54bd473a1))
+* 修改日志打印 ([78366cb](https://github.com/koatty/koatty_trace/commit/78366cbd6e9fe0177c1ed61600947678d19dd1a0))
+
 ### [1.12.1](https://github.com/koatty/koatty_trace/compare/v1.12.0...v1.12.1) (2024-01-24)
 
 
