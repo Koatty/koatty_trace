@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2024-01-24 11:01:38
+ * @LastEditTime: 2024-02-01 10:03:01
  */
 import { Helper } from "koatty_lib";
 import { Stream } from 'stream';
@@ -40,7 +40,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: exte
   // response finish
   ctx.res.once('finish', () => {
     const now = Date.now();
-    const msg = `{"action":"${ctx.method}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
+    const msg = `{"action":"${ctx.method}","status":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
     if (span) {
       span.setTag(Tags.HTTP_STATUS_CODE, ctx.status);

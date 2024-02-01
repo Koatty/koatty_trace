@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-01-24 11:01:51
+ * @LastEditTime: 2024-02-01 10:03:11
  */
 import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
@@ -37,7 +37,7 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
   const finish = () => {
     const now = Date.now();
     const status = StatusCodeConvert(ctx.status);
-    const msg = `{"action":"${ctx.protocol}","code":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
+    const msg = `{"action":"${ctx.protocol}","status":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
     Logger[(status > 0 ? 'Error' : 'Info')](msg);
     if (span) {
       span.setTag(Tags.HTTP_STATUS_CODE, status);

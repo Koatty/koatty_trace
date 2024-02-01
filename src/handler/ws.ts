@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2024-01-24 11:01:56
+ * @LastEditTime: 2024-02-01 10:03:17
 */
 import { inspect } from "util";
 import * as Helper from "koatty_lib";
@@ -38,7 +38,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extens
   // after send message event
   const finish = () => {
     const now = Date.now();
-    const msg = `{"action":"${ctx.protocol}","code":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
+    const msg = `{"action":"${ctx.protocol}","status":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
     if (span) {
       span.setTag(Tags.HTTP_STATUS_CODE, ctx.status);
