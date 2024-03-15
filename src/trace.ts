@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-01-24 10:42:07
+ * @LastEditTime: 2024-03-15 10:16:14
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -98,8 +98,6 @@ export function Trace(options: TraceOptions, app: Koatty) {
   return async (ctx: KoattyContext, next: KoattyNext) => {
     // set ctx start time
     Helper.define(ctx, 'startTime', Date.now());
-    // originalPath
-    Helper.define(ctx, 'originalPath', ctx.path);
 
     // server terminated
     let terminated = false;
@@ -113,6 +111,8 @@ export function Trace(options: TraceOptions, app: Koatty) {
     let requestId = '';
     switch (ctx.protocol) {
       case "grpc":
+        // originalPath
+        Helper.define(ctx, 'originalPath', ctx.getMetaData("originalPath")[0]);
         // http version
         Helper.define(ctx, 'version', "2.0");
         const request: any = ctx.getMetaData("_body")[0] || {};
@@ -120,6 +120,8 @@ export function Trace(options: TraceOptions, app: Koatty) {
           `${request[options.RequestIdName] || ''}`;
         break;
       default:
+        // originalPath
+        Helper.define(ctx, 'originalPath', ctx.path);
         // http version
         Helper.define(ctx, 'version', ctx.req.httpVersion);
         const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
