@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.3](https://github.com/koatty/koatty_trace/compare/v1.12.2...v1.12.3) (2024-03-15)
+
+
+### Bug Fixes
+
+* grpc服务ctx.path取值错误 ([a9d8df9](https://github.com/koatty/koatty_trace/commit/a9d8df98134c5217dee221cbc5f90552220d3adc))
+
 ### [1.12.2](https://github.com/koatty/koatty_trace/compare/v1.12.1...v1.12.2) (2024-02-01)
 
 
