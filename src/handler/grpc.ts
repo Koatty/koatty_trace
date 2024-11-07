@@ -3,14 +3,13 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-02-01 10:03:11
+ * @LastEditTime: 2024-11-07 11:31:40
  */
-import * as Helper from "koatty_lib";
-import { KoattyContext } from "koatty_core";
+import { IRpcServerWriteableStream, KoattyContext } from "koatty_core";
+import { Exception, StatusCodeConvert } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, isPrevent, StatusCodeConvert } from "koatty_exception";
-import { catcher, extensionOptions } from '../catcher';
 import { Span, Tags } from "opentracing";
+import { catcher, extensionOptions } from '../catcher';
 
 /**
  * gRPCHandler
@@ -50,19 +49,20 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
     // ctx = null;
   };
   ctx.res.once("finish", finish);
-  ctx.rpc.call.once("error", finish);
+  (<IRpcServerWriteableStream<any, any>>ctx.rpc.call).once("error", finish);
 
   // try /catch
   const response: any = {};
 
   try {
     if (!ext.terminated) {
-      response.timeout = null;
-      // promise.race
-      await Promise.race([new Promise((resolve, reject) => {
-        response.timeout = setTimeout(reject, timeout, new Exception('Deadline exceeded', 1, 4));
-        return;
-      }), next()]);
+      response.timeout = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Deadline exceeded')); // 抛出超时异常
+        }, timeout);
+      });
+
+      await Promise.race([next(), response.timeout]);
     }
 
     if (ctx.body !== undefined && ctx.status === 404) {
