@@ -74,6 +74,7 @@
     "@types/lodash": "^4.x.x",
     "@types/node": "^22.x.x",
     "@types/on-finished": "^2.x.x",
+    "@types/uuid": "^10.0.0",
     "@types/ws": "^8.x.x",
     "@typescript-eslint/eslint-plugin": "^8.x.x",
     "@typescript-eslint/parser": "^8.x.x",

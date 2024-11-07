@@ -5,13 +5,12 @@
  * @Date: 2021-11-19 00:24:43
  * @LastEditTime: 2024-02-01 10:03:17
 */
-import { inspect } from "util";
-import * as Helper from "koatty_lib";
 import { KoattyContext } from "koatty_core";
+import { Exception } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, isPrevent } from "koatty_exception";
-import { catcher, extensionOptions } from "../catcher";
 import { Span, Tags } from "opentracing";
+import { inspect } from "util";
+import { catcher, extensionOptions } from "../catcher";
 
 /**
  * wsHandler

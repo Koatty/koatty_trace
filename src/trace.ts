@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-03-15 10:16:14
+ * @LastEditTime: 2024-11-07 11:33:58
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Helper } from "koatty_lib";
 import { IOCContainer } from "koatty_container";
 import { Koatty, KoattyContext, KoattyNext } from "koatty_core";
-import { FORMAT_HTTP_HEADERS, Span, Tags, Tracer } from "opentracing";
+import { FORMAT_HTTP_HEADERS, Span, Tracer } from "opentracing";
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
 import { httpHandler } from './handler/http';
 import { gRPCHandler } from './handler/grpc';

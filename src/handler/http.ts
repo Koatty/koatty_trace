@@ -3,14 +3,13 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2024-02-01 10:03:01
+ * @LastEditTime: 2024-11-07 11:32:58
  */
-import { Helper } from "koatty_lib";
 import { Stream } from 'stream';
 import { catcher, extensionOptions } from "../catcher";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception, isPrevent } from "koatty_exception";
+import { Exception } from "koatty_exception";
 import { Span, Tags } from "opentracing";
 
 // StatusEmpty

@@ -3,13 +3,13 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2024-02-01 16:28:50
+ * @LastEditTime: 2024-11-07 11:34:09
  */
 
 import { KoattyContext } from "koatty_core";
 import { Exception, isException } from "koatty_exception";
 import { Helper } from "koatty_lib";
-import { Span, Tags } from "opentracing";
+import { Span } from "opentracing";
 
 /**
  * @description: extensionOptions
@@ -29,11 +29,11 @@ export interface extensionOptions {
  * @param err 
  * @param span 
  * @param globalErrorHandler 
- * @param ext 
+ * @param _ext 
  * @returns 
  */
 export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Exception | T, span?: Span,
-  globalErrorHandler?: any, ext?: extensionOptions) {
+  globalErrorHandler?: any, _ext?: extensionOptions) {
   err.message = err.message || ctx.message || "";
   if (err.message.includes('"')) {
     err.message = err.message.replaceAll('"', '\\"');
