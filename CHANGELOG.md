@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.13.0](https://github.com/koatty/koatty_trace/compare/v1.12.4...v1.13.0) (2024-11-10)
+
+
+### Bug Fixes
+
+* app.server is undefined ([3d43f4e](https://github.com/koatty/koatty_trace/commit/3d43f4e921518ccbd481d7c8a8f8d88bd8bb8763))
+
 ### [1.12.4](https://github.com/koatty/koatty_trace/compare/v1.12.3...v1.12.4) (2024-11-07)
 
 ### [1.12.3](https://github.com/koatty/koatty_trace/compare/v1.12.2...v1.12.3) (2024-03-15)
