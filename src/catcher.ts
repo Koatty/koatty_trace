@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2024-11-10 23:54:44
+ * @LastEditTime: 2024-11-11 00:07:49
  */
 
 import { IOCContainer } from "koatty_container";
@@ -63,6 +63,6 @@ export function catcher<T extends Exception>(
  * @param {any} clazz
  * @return {*}
  */
-function isConstructor(clazz: any) {
-  return typeof clazz === 'function' && 'prototype' in clazz && 'constructor' in clazz.prototype;
-}
+// function isConstructor(clazz: any): any {
+//   return typeof clazz === 'function' && 'prototype' in clazz && 'constructor' in clazz.prototype;
+// }
