@@ -3,14 +3,14 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2024-11-07 11:32:58
+ * @LastEditTime: 2024-11-11 00:01:09
  */
+import { KoattyContext } from "koatty_core";
+import { Exception } from "koatty_exception";
+import { DefaultLogger as Logger } from "koatty_logger";
+import { Span, Tags } from "opentracing";
 import { Stream } from 'stream';
 import { catcher, extensionOptions } from "../catcher";
-import { KoattyContext } from "koatty_core";
-import { DefaultLogger as Logger } from "koatty_logger";
-import { Exception } from "koatty_exception";
-import { Span, Tags } from "opentracing";
 
 // StatusEmpty
 const StatusEmpty = [204, 205, 304];
@@ -37,7 +37,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: exte
   }
 
   // response finish
-  ctx.res.once('finish', () => {
+  ctx?.res?.once('finish', () => {
     const now = Date.now();
     const msg = `{"action":"${ctx.method}","status":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);

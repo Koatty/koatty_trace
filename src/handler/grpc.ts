@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-11-07 11:31:40
+ * @LastEditTime: 2024-11-10 23:59:37
  */
 import { IRpcServerWriteableStream, KoattyContext } from "koatty_core";
 import { Exception, StatusCodeConvert } from "koatty_exception";
@@ -22,10 +22,10 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
   // Encoding
   ctx.encoding = ext.encoding;
 
-  ctx.rpc.call.metadata.set('X-Powered-By', 'Koatty');
-  ctx.rpc.call.sendMetadata(ctx.rpc.call.metadata);
+  ctx?.rpc?.call?.metadata?.set('X-Powered-By', 'Koatty');
+  ctx?.rpc?.call?.sendMetadata(ctx.rpc.call.metadata);
 
-  const span = <Span>ext.span;
+  const span = <Span>ext?.span;
   if (span) {
     span.setTag(Tags.HTTP_URL, ctx.originalUrl);
     span.setTag(Tags.HTTP_METHOD, ctx.method);
@@ -49,7 +49,7 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
     // ctx = null;
   };
   ctx.res.once("finish", finish);
-  (<IRpcServerWriteableStream<any, any>>ctx.rpc.call).once("error", finish);
+  (<IRpcServerWriteableStream<any, any>>ctx?.rpc?.call).once("error", finish);
 
   // try /catch
   const response: any = {};

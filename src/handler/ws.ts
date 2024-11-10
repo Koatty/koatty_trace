@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2024-02-01 10:03:17
+ * @LastEditTime: 2024-11-11 00:01:48
 */
 import { KoattyContext } from "koatty_core";
 import { Exception } from "koatty_exception";
@@ -48,7 +48,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extens
     }
     // ctx = null;
   }
-  ctx.res.once("finish", finish);
+  ctx?.res?.once("finish", finish);
 
   // ctx.websocket.once("error", finish);
   // ctx.websocket.once("connection", () => {
