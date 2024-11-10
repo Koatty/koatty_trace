@@ -3,7 +3,7 @@
  * @Usage: 
  * @Author: richen
  * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2024-11-07 11:34:09
+ * @LastEditTime: 2024-11-10 23:36:27
  */
 
 import { KoattyContext } from "koatty_core";
@@ -36,10 +36,11 @@ export function catcher<T extends Exception>(ctx: KoattyContext, err: Error | Ex
   globalErrorHandler?: any, _ext?: extensionOptions) {
   err.message = err.message || ctx.message || "";
   if (err.message.includes('"')) {
-    err.message = err.message.replaceAll('"', '\\"');
+    // err.message = err.message.replaceAll('"', '\\"');
+    err.message = err.message.replace(/"/g, '\\"');
   }
   // 如果是异常对象，直接返回
-  if (isException(err)) {
+  if (isException(err) && span) {
     return (<Exception>err).setSpan(span).handler(ctx);
   }
   // 执行自定义全局异常处理
