@@ -2,7 +2,7 @@
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-11-10 23:46:14
+ * @LastEditTime: 2024-11-11 11:36:33
  * @License: BSD (3-Clause)
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
@@ -129,7 +129,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
         Helper.define(ctx, 'version', ctx.req.httpVersion);
         if (options.RequestIdHeaderName) {
           const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
-          const headerRequestIdValue = request.headers[requestIdHeaderName];
+          const headerRequestIdValue = ctx.headers[requestIdHeaderName];
           if (Helper.isArray(headerRequestIdValue)) {
             requestId = headerRequestIdValue.join(".");
           } else {
