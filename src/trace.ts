@@ -1,3 +1,12 @@
+/**
+ * 
+ * @Description: 
+ * @Author: richen
+ * @Date: 2024-11-11 11:36:07
+ * @LastEditTime: 2025-03-20 13:42:16
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ */
 /*
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
@@ -9,29 +18,18 @@
 import { IOCContainer } from "koatty_container";
 import { Koatty, KoattyContext, KoattyNext } from "koatty_core";
 import { Helper } from "koatty_lib";
-import { FORMAT_HTTP_HEADERS, Tracer } from "opentracing";
+import { context, trace } from '@opentelemetry/api';
+import { defaultTextMapGetter, defaultTextMapSetter } from '@opentelemetry/api';
 import { v4 as uuidv4 } from "uuid";
 import { extensionOptions } from "./catcher";
 import { gRPCHandler } from './handler/grpc';
 import { httpHandler } from './handler/http';
 import { wsHandler } from './handler/ws';
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
+import { initOpenTelemetry } from "./opentelemetry";
+import { TraceOptions } from "./itrace";
+import { W3CTraceContextPropagator } from "@opentelemetry/core";
 
-/**
- * TraceOptions
- *
- * @export
- * @interface TraceOptions
- */
-export interface TraceOptions {
-  RequestIdHeaderName?: string;
-  RequestIdName?: string;
-  IdFactory?: Function;
-  Timeout?: number;
-  Encoding?: string;
-  OpenTrace?: boolean;
-  AsyncHooks?: boolean;
-}
 
 /** 
  * defaultOptions
@@ -42,40 +40,11 @@ const defaultOptions = {
   IdFactory: uuidv4,
   Timeout: 10000,
   Encoding: 'utf-8',
-  OpenTrace: false,
+  EnableTrace: false,
   AsyncHooks: false,
+  OtlpEndpoint: "http://localhost:4318/v1/traces",
 };
 
-/**
- * @description: 
- * @return {*}
- */
-const respWapper = async (ctx: KoattyContext, next: KoattyNext,
-  options: TraceOptions, ext: extensionOptions) => {
-  // metadata
-  if (options.RequestIdName) ctx.setMetaData(options.RequestIdName, ctx.requestId);
-  // protocol handler
-  switch (ctx.protocol) {
-    case "grpc":
-      // allow bypassing koa
-      ctx.respond = false;
-      if (ctx.rpc && options.RequestIdName)
-        ctx.rpc.call.metadata.set(options.RequestIdName, ctx.requestId);
-      return gRPCHandler(ctx, next, ext);
-    case "ws":
-    case "wss":
-      // allow bypassing koa
-      ctx.respond = false;
-      if (options.RequestIdHeaderName)
-        ctx.set(options.RequestIdHeaderName, ctx.requestId);
-      return wsHandler(ctx, next, ext);
-    default:
-      // response header
-      if (options.RequestIdHeaderName)
-        ctx.set(options.RequestIdHeaderName, ctx.requestId);
-      return httpHandler(ctx, next, ext);
-  }
-}
 
 /**
  * Trace middleware
@@ -88,11 +57,12 @@ export function Trace(options: TraceOptions, app: Koatty) {
   options = { ...defaultOptions, ...options };
 
   // 
-  let tracer: Tracer;
-  if (options.OpenTrace) {
+  let tracer: any;
+  if (options.EnableTrace) {
     tracer = app.getMetaData("tracer")[0];
     if (!tracer) {
-      tracer = new Tracer();
+      initOpenTelemetry(app, options);
+      tracer = trace.getTracer('koatty-tracer');
     }
   }
   // global error handler class
@@ -145,15 +115,40 @@ export function Trace(options: TraceOptions, app: Koatty) {
     Helper.define(ctx, 'requestId', requestId);
     let span;
     // opten trace
-    if (options.OpenTrace) {
+    if (options.EnableTrace) {
       const serviceName = app.name || "unknownKoattyProject";
-      const wireCtx = tracer.extract(FORMAT_HTTP_HEADERS, ctx.req.headers);
-      if (wireCtx != null) {
-        span = tracer.startSpan(serviceName, { childOf: wireCtx });
-      } else {
-        span = tracer.startSpan(serviceName);
-      }
-      span.addTags({ requestId });
+      // 使用标准W3C Trace Context传播
+      const propagator = new W3CTraceContextPropagator();
+      const carrier: { [key: string]: string } = {};
+      
+      // 从请求头中提取上下文
+      const incomingContext = propagator.extract(
+        context.active(),
+        ctx.headers,
+        defaultTextMapGetter
+      );
+      
+      // 创建新Span并关联到上下文
+      span = tracer.startSpan(serviceName, {}, incomingContext);
+      
+      // 注入响应头
+      context.with(trace.setSpan(incomingContext, span), () => {
+        propagator.inject(
+          context.active(),
+          carrier,
+          defaultTextMapSetter
+        );
+        
+        // 设置标准headers到响应
+        Object.entries(carrier).forEach(([key, value]) => {
+          ctx.set(key, value);
+        });
+      });
+      
+      // 添加标准属性
+      span.setAttribute("http.request_id", requestId);
+      span.setAttribute("http.method", ctx.method);
+      span.setAttribute("http.route", ctx.path);
       ctx.setMetaData("tracer_span", span);
     }
 
@@ -175,7 +170,13 @@ export function Trace(options: TraceOptions, app: Koatty) {
         return respWapper(ctx, next, options, ext);
       });
     }
-    return respWapper(ctx, next, options, ext);
+    try {
+      return await respWapper(ctx, next, options, ext);
+    } finally {
+      if (span) {
+        span.end(); // 确保Span正确结束
+      }
+    }
   }
 }
 
@@ -192,4 +193,42 @@ function getTraceId(options?: TraceOptions) {
     rid = options?.IdFactory();
   }
   return rid || uuidv4();
+}
+
+/**
+ * Wrapper function for handling different protocol responses with trace functionality.
+ * Supports multiple protocols (gRPC/WS/WSS/HTTP/HTTPS/GraphQL) and sets request ID in metadata.
+ * 
+ * @param ctx - Koatty context object
+ * @param next - Koatty next middleware function
+ * @param options - Trace configuration options
+ * @param ext - Extension options for trace handling
+ * @returns Promise that resolves to the handler result based on protocol
+ */
+async function respWapper(ctx: KoattyContext, next: KoattyNext,
+  options: TraceOptions, ext: extensionOptions) {
+  // metadata
+  if (options.RequestIdName) ctx.setMetaData(options.RequestIdName, ctx.requestId);
+  // protocol handler
+  // 支持多协议处理（grpc/ws/wss/http/https/graphql）
+  switch (ctx.protocol.toLowerCase()) {
+    case "grpc":
+      // allow bypassing koa
+      ctx.respond = false;
+      if (ctx.rpc && options.RequestIdName)
+        ctx.rpc.call.metadata.set(options.RequestIdName, ctx.requestId);
+      return gRPCHandler(ctx, next, ext);
+    case "ws":
+    case "wss":
+      // allow bypassing koa
+      ctx.respond = false;
+      if (options.RequestIdHeaderName)
+        ctx.set(options.RequestIdHeaderName, ctx.requestId);
+      return wsHandler(ctx, next, ext);
+    default:
+      // response header
+      if (options.RequestIdHeaderName)
+        ctx.set(options.RequestIdHeaderName, ctx.requestId);
+      return httpHandler(ctx, next, ext);
+  }
 }
