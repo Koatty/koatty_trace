@@ -1,5 +1,14 @@
 /**
  * 
+ * @Description: 
+ * @Author: richen
+ * @Date: 2024-11-07 11:22:26
+ * @LastEditTime: 2025-03-20 16:59:18
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ */
+/**
+ * 
  */
 
 // jest详细配置参见:
@@ -18,7 +27,8 @@ module.exports = {
     }],
   },
   transformIgnorePatterns: ["<rootDir>/node_modules/"],
-  testMatch: ['<rootDir>/test/**/*.(spec|test).[jt]s'], // 匹配测试用例的路径规则
+  testMatch: ['<rootDir>/test/**/*.test.ts'], // 精确匹配所有.test.ts文件
+  moduleFileExtensions: ['ts', 'js'], // 明确声明模块扩展名
   reporters: [
     'default',
     'jest-html-reporters'

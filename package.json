@@ -110,7 +110,7 @@
     "@opentelemetry/semantic-conventions": "^1.30.0",
     "koatty_container": "^1.x.x",
     "koatty_core": "^1.x.x",
-    "koatty_exception": "^1.x.x",
+    "koatty_exception": "^1.6.0",
     "koatty_lib": "^1.x.x",
     "koatty_logger": "^2.x.x",
     "uuid": "^9.0.1"
