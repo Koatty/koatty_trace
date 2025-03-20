@@ -1,16 +1,18 @@
-/*
+/**
+ * 
  * @Description: 
- * @Usage: 
  * @Author: richen
- * @Date: 2022-02-21 11:32:03
- * @LastEditTime: 2024-11-11 00:07:49
+ * @Date: 2024-11-11 11:36:07
+ * @LastEditTime: 2025-03-20 17:35:32
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
  */
 
 import { IOCContainer } from "koatty_container";
 import { KoattyContext } from "koatty_core";
 import { Exception, isException } from "koatty_exception";
 import { Helper } from "koatty_lib";
-import { Span } from "opentracing";
+import { Span } from "@opentelemetry/api";
 
 /**
  * @description: extensionOptions

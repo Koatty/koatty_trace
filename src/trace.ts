@@ -1,12 +1,3 @@
-/**
- * 
- * @Description: 
- * @Author: richen
- * @Date: 2024-11-11 11:36:07
- * @LastEditTime: 2025-03-20 13:42:16
- * @License: BSD (3-Clause)
- * @Copyright (c): <richenlin(at)gmail.com>
- */
 /*
  * @Author: richen
  * @Date: 2020-11-20 17:37:32
@@ -26,7 +17,7 @@ import { gRPCHandler } from './handler/grpc';
 import { httpHandler } from './handler/http';
 import { wsHandler } from './handler/ws';
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
-import { initOpenTelemetry } from "./opentelemetry";
+import { initOpenTelemetry, startTracer } from "./opentelemetry";
 import { TraceOptions } from "./itrace";
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 
@@ -61,8 +52,8 @@ export function Trace(options: TraceOptions, app: Koatty) {
   if (options.EnableTrace) {
     tracer = app.getMetaData("tracer")[0];
     if (!tracer) {
-      initOpenTelemetry(app, options);
-      tracer = trace.getTracer('koatty-tracer');
+      tracer = initOpenTelemetry(app, options)
+      startTracer(tracer, app, options);
     }
   }
   // global error handler class
@@ -120,17 +111,17 @@ export function Trace(options: TraceOptions, app: Koatty) {
       // 使用标准W3C Trace Context传播
       const propagator = new W3CTraceContextPropagator();
       const carrier: { [key: string]: string } = {};
-      
+
       // 从请求头中提取上下文
       const incomingContext = propagator.extract(
         context.active(),
         ctx.headers,
         defaultTextMapGetter
       );
-      
+
       // 创建新Span并关联到上下文
       span = tracer.startSpan(serviceName, {}, incomingContext);
-      
+
       // 注入响应头
       context.with(trace.setSpan(incomingContext, span), () => {
         propagator.inject(
@@ -138,13 +129,13 @@ export function Trace(options: TraceOptions, app: Koatty) {
           carrier,
           defaultTextMapSetter
         );
-        
+
         // 设置标准headers到响应
         Object.entries(carrier).forEach(([key, value]) => {
           ctx.set(key, value);
         });
       });
-      
+
       // 添加标准属性
       span.setAttribute("http.request_id", requestId);
       span.setAttribute("http.method", ctx.method);
