@@ -23,4 +23,5 @@ export interface TraceOptions {
   EnableTrace?: boolean;
   AsyncHooks?: boolean;
   OtlpEndpoint?: string;
+  OtlpHeaders?: Record<string, string>;
 }

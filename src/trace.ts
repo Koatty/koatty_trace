@@ -44,7 +44,7 @@ const defaultOptions = {
  * @param {Koatty} app
  * @returns {*}  {Koa.Middleware}
  */
-export function Trace(options: TraceOptions, app: Koatty) {
+export  async function Trace(options: TraceOptions, app: Koatty) {
   options = { ...defaultOptions, ...options };
 
   // 
@@ -53,7 +53,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
     tracer = app.getMetaData("tracer")[0];
     if (!tracer) {
       tracer = initOpenTelemetry(app, options)
-      startTracer(tracer, app, options);
+      await startTracer(tracer, app, options);
     }
   }
   // global error handler class

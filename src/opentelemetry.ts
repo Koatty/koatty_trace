@@ -10,13 +10,11 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { diag, DiagLogLevel, trace } from '@opentelemetry/api';
+import {  trace } from '@opentelemetry/api';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { Koatty } from 'koatty_core';
 import { TraceOptions } from './itrace';
 import { DefaultLogger as logger } from "koatty_logger";
-import { Logger } from './logger';
-
 
 /**
  * Initialize OpenTelemetry SDK for Koatty application
@@ -33,13 +31,11 @@ export function initOpenTelemetry(app: Koatty, options: TraceOptions) {
   const traceExporter = new OTLPTraceExporter({
     // 根据实际安装版本使用正确的配置参数
     url: options.OtlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
-    headers: process.env.OTEL_EXPORTER_OTLP_HEADERS 
-      ? JSON.parse(process.env.OTEL_EXPORTER_OTLP_HEADERS)
-      : undefined
+    headers: options.OtlpHeaders || {}
   });
 
   // Enable logging for debugging
-  diag.setLogger(new Logger(), DiagLogLevel.INFO);
+  // diag.setLogger(new Logger(), DiagLogLevel.INFO);
 
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({
@@ -88,9 +84,9 @@ export function initOpenTelemetry(app: Koatty, options: TraceOptions) {
  * 
  * @throws {Error} Logs error if SDK initialization fails
  */
-export function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptions) {
+export async function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptions) {
   try {
-    sdk.start();
+    await sdk.start();
     logger.info('OpenTelemetry SDK started successfully');
   } catch (err) {
     logger.error(`OpenTelemetry SDK初始化失败: ${err.message}`, {
