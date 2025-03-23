@@ -1,37 +1,50 @@
-/*
+/**
+ * 
  * @Description: 
- * @Usage: 
+ * @Author: richen
+ * @Date: 2025-03-23 01:11:24
+ * @LastEditTime: 2025-03-23 10:47:44
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ */
+/**
+ * Async context tracking module
+ * 
+ * @Description: Provides async context tracking using async_hooks
  * @Author: richen
  * @Date: 2021-11-18 10:44:51
- * @LastEditTime: 2022-02-16 16:59:32
+ * @LastEditTime: 2025-03-23 00:56:47
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ * @Usage: 
  */
 import { AsyncLocalStorage, AsyncResource } from "async_hooks";
-const isWrappedSymbol = Symbol('cls-tracer-is-wrapped')
-const wrappedSymbol = Symbol('cls-tracer-wrapped-function')
+import { EventEmitter } from 'events'; // Used in type annotations
 
 // AsyncLocalStorage
 export const asyncLocalStorage = new AsyncLocalStorage();
 
-const addMethods = [
-  'on',
-  'addListener',
-  'prependListener'
-]
+// EventEmitter methods to wrap
+const eventMethods = {
+  add: ['on', 'addListener'],
+  remove: ['off', 'removeListener']
+}
 
-const removeMethods = [
-  'off',
-  'removeListener'
-]
+// Lightweight wrapper cache
+const wrapperCache = new Map<string, Function>();
 
-/**
- * Create AsyncResource
- *
- * @export
- * @param {string} [key='koatty-tracer']
- * @returns {*}  {AsyncResource}
- */
-export function createAsyncResource(key = 'koatty-tracer'): AsyncResource {
-  return new AsyncResource(key);
+export function createAsyncResource(key = Symbol('koatty-tracer').toString()):
+ AsyncResource & { emitDestroy: () => void } {
+  const resource = new AsyncResource(key);
+  
+  // Clean up wrapper cache on destroy
+  resource.emitDestroy = () => {
+    wrapperCache.clear();
+    AsyncResource.prototype.emitDestroy.call(resource);
+    return resource;
+  };
+
+  return resource;
 }
 
 /**
@@ -42,18 +55,29 @@ export function createAsyncResource(key = 'koatty-tracer'): AsyncResource {
  * @param {*} emitter
  * @param {AsyncResource} asyncResource
  */
-export function wrapEmitter(emitter: any, asyncResource: AsyncResource) {
-  for (const method of addMethods) {
-    wrapEmitterMethod(emitter, method, (original: Function) => function (name: string, handler: any) {
-      handler[wrappedSymbol] = asyncResource.runInAsyncScope.bind(asyncResource, handler, emitter)
-      return original.call(this, name, handler[wrappedSymbol]);
-    })
+export function wrapEmitter(emitter: EventEmitter, asyncResource: AsyncResource) {
+  for (const method of eventMethods.add) {
+    wrapEmitterMethod(emitter, method, (original: Function) => function (name: string, handler: (...args: any[]) => void) {
+      const cacheKey = `${name}:${handler.toString()}`;
+      if (!wrapperCache.has(cacheKey)) {
+        const wrappedHandler = (...args: any[]) => {
+          asyncResource.runInAsyncScope(handler, emitter, ...args);
+        };
+        wrapperCache.set(cacheKey, wrappedHandler);
+        return original.call(this, name, wrappedHandler);
+      }
+      return original.call(this, name, handler);
+    });
   }
 
-  for (const method of removeMethods) {
-    wrapEmitterMethod(emitter, method, (original: Function) => function (name: string, handler: any) {
-      return original.call(this, name, handler[wrappedSymbol] || handler);
-    })
+  for (const method of eventMethods.remove) {
+    wrapEmitterMethod(emitter, method, (original: Function) => function (name: string, handler: (...args: any[]) => void) {
+      const cacheKey = `${name}:${handler.toString()}`;
+      if (wrapperCache.has(cacheKey)) {
+        wrapperCache.delete(cacheKey);
+      }
+      return original.call(this, name, handler);
+    });
   }
 }
 
@@ -65,15 +89,17 @@ export function wrapEmitter(emitter: any, asyncResource: AsyncResource) {
  * @param {Function} wrapper
  * @returns {*}  
  */
-export function wrapEmitterMethod(emitter: any, method: string, wrapper: Function) {
-  if (emitter[method][isWrappedSymbol]) {
+export function wrapEmitterMethod(emitter: EventEmitter, method: string, wrapper: Function) {
+  if (!(method in emitter)) {
     return;
   }
 
-  const original = emitter[method];
-  const wrapped = wrapper(original, method);
-  wrapped[isWrappedSymbol] = true;
-  emitter[method] = wrapped;
+  const original = (emitter as any)[method];
+  if (typeof original !== 'function') {
+    return;
+  }
 
+  const wrapped = wrapper(original, method);
+  (emitter as any)[method] = wrapped;
   return wrapped;
 }

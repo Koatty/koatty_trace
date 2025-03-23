@@ -1,14 +1,18 @@
-/*
+/**
+ * 
  * @Description: 
- * @Usage: 
  * @Author: richen
- * @Date: 2021-11-19 00:14:59
- * @LastEditTime: 2024-11-11 00:01:09
+ * @Date: 2025-03-21 22:07:11
+ * @LastEditTime: 2025-03-23 11:55:03
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
  */
+
 import { KoattyContext } from "koatty_core";
 import { Exception } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Span, Tags } from "opentracing";
+import { Span } from "@opentelemetry/api";
+import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { Stream } from 'stream';
 import { catcher, extensionOptions } from "../catcher";
 
@@ -16,10 +20,22 @@ import { catcher, extensionOptions } from "../catcher";
 const StatusEmpty = [204, 205, 304];
 
 /**
- * httpHandler
- *
- * @param {Koatty} app
- * @returns {*}  
+ * HTTP request handler middleware for Koatty framework.
+ * Handles request timeout, security headers, logging, tracing and error handling.
+ * 
+ * @param {KoattyContext} ctx - Koatty context object
+ * @param {Function} next - Next middleware function
+ * @param {extensionOptions} [ext] - Extension options including timeout, encoding, span and other settings
+ * @returns {Promise<any>} Response data after handling the request
+ * 
+ * @throws {Exception} When request timeout occurs or status code >= 400
+ * 
+ * Features:
+ * - Sets security headers
+ * - Handles request timeout (default 10s)
+ * - Logs request/response details
+ * - OpenTelemetry tracing support
+ * - Automatic error handling
  */
 export async function httpHandler(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
   const timeout = ext.timeout || 10000;
@@ -32,8 +48,8 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: exte
 
   const span = <Span>ext.span;
   if (span) {
-    span.setTag(Tags.HTTP_URL, ctx.originalUrl);
-    span.setTag(Tags.HTTP_METHOD, ctx.method);
+    span.setAttribute(SemanticAttributes.HTTP_URL, ctx.originalUrl);
+    span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
   }
 
   // response finish
@@ -42,11 +58,11 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: exte
     const msg = `{"action":"${ctx.method}","status":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
     if (span) {
-      span.setTag(Tags.HTTP_STATUS_CODE, ctx.status);
-      span.setTag(Tags.HTTP_METHOD, ctx.method);
-      span.setTag(Tags.HTTP_URL, ctx.url);
-      span.log({ "request": msg });
-      span.finish();
+      span.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, ctx.status);
+      span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
+      span.setAttribute(SemanticAttributes.HTTP_URL, ctx.url);
+      span.addEvent("request", { "message": msg });
+      span.end();
     }
     // ctx = null;
   });
@@ -55,12 +71,18 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: exte
   const response: any = ctx.res;
   try {
     if (!ext.terminated) {
-      response.timeout = null;
-      // promise.race
-      await Promise.race([new Promise((resolve, reject) => {
-        response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
-        return;
-      }), next()]);
+      response.timeout = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Deadline exceeded')); // 抛出超时异常
+        }, timeout);
+      });
+
+      await Promise.race([next(), response.timeout]).then(() => {
+        clearTimeout(response.timeout);
+      }).catch((err) => {
+        clearTimeout(response.timeout);
+        throw err;
+      });
     }
 
     if (ctx.body !== undefined && ctx.status === 404) {

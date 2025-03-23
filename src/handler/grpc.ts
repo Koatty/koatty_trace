@@ -1,21 +1,31 @@
-/*
+/**
+ * 
  * @Description: 
- * @Usage: 
  * @Author: richen
- * @Date: 2021-11-19 00:23:06
- * @LastEditTime: 2024-11-10 23:59:37
+ * @Date: 2025-03-21 22:07:11
+ * @LastEditTime: 2025-03-23 11:41:02
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
  */
 import { IRpcServerWriteableStream, KoattyContext } from "koatty_core";
 import { Exception, StatusCodeConvert } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Span, Tags } from "opentracing";
+import { Span } from '@opentelemetry/api';
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { catcher, extensionOptions } from '../catcher';
 
+
 /**
- * gRPCHandler
- *
- * @param {Koatty} app
- * @returns {*}  
+ * gRPC request handler middleware for Koatty framework.
+ * Handles gRPC requests with tracing, timeout, error handling and logging capabilities.
+ * 
+ * @param {KoattyContext} ctx - The Koatty context object
+ * @param {Function} next - The next middleware function
+ * @param {extensionOptions} [ext] - Extension options including timeout, encoding, span and error handler
+ * @returns {Promise<any>} Returns null on success or error result from catcher
+ * 
+ * @throws {Exception} When response status is >= 400
+ * @throws {Error} When request timeout exceeded
  */
 export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
   const timeout = ext.timeout || 10000;
@@ -27,8 +37,8 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
 
   const span = <Span>ext?.span;
   if (span) {
-    span.setTag(Tags.HTTP_URL, ctx.originalUrl);
-    span.setTag(Tags.HTTP_METHOD, ctx.method);
+    span.setAttribute(SemanticAttributes.HTTP_URL, ctx.originalUrl);
+    span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
   }
 
 
@@ -39,11 +49,11 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
     const msg = `{"action":"${ctx.protocol}","status":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
     Logger[(status > 0 ? 'Error' : 'Info')](msg);
     if (span) {
-      span.setTag(Tags.HTTP_STATUS_CODE, status);
-      span.setTag(Tags.HTTP_METHOD, ctx.method);
-      span.setTag(Tags.HTTP_URL, ctx.url);
-      span.log({ "request": msg });
-      span.finish();
+      span.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, status);
+      span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
+      span.setAttribute(SemanticAttributes.HTTP_URL, ctx.url);
+      span.addEvent("request", { "message": msg });
+      span.end();
     }
 
     // ctx = null;
@@ -62,7 +72,12 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
         }, timeout);
       });
 
-      await Promise.race([next(), response.timeout]);
+      await Promise.race([next(), response.timeout]).then(() => {
+        clearTimeout(response.timeout);
+      }).catch((err) => {
+        clearTimeout(response.timeout);
+        throw err;
+      });
     }
 
     if (ctx.body !== undefined && ctx.status === 404) {
@@ -77,6 +92,5 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
     return catcher(ctx, err, span, ext.globalErrorHandler, ext);
   } finally {
     ctx.res.emit("finish");
-    clearTimeout(response.timeout);
   }
 }

@@ -10,11 +10,16 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import {  trace } from '@opentelemetry/api';
+import {  diag, DiagLogLevel, trace } from '@opentelemetry/api';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { Koatty } from 'koatty_core';
 import { TraceOptions } from './itrace';
-import { DefaultLogger as logger } from "koatty_logger";
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION, ATTR_TELEMETRY_SDK_LANGUAGE,
+ ATTR_TELEMETRY_SDK_NAME, ATTR_TELEMETRY_SDK_VERSION,
+  SEMRESATTRS_DEPLOYMENT_ENVIRONMENT, } from "@opentelemetry/semantic-conventions";
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { DefaultLogger, DefaultLogger as logger } from "koatty_logger";
+import { Logger } from './logger';
 
 /**
  * Initialize OpenTelemetry SDK for Koatty application
@@ -28,33 +33,56 @@ import { DefaultLogger as logger } from "koatty_logger";
  * Configures service attributes, SDK metadata, and custom properties.
  */
 export function initOpenTelemetry(app: Koatty, options: TraceOptions) {
+  if (!app || !options) {
+    throw new Error('app and options parameters are required');
+  }
+
+  // 验证并配置OTLP exporter
+  const otlpEndpoint = options.OtlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  if (!otlpEndpoint) {
+    throw new Error('OTLP endpoint is required');
+  }
+
   const traceExporter = new OTLPTraceExporter({
-    // 根据实际安装版本使用正确的配置参数
-    url: options.OtlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
-    headers: options.OtlpHeaders || {}
+    url: otlpEndpoint,
+    headers: options.OtlpHeaders || {},
+    timeoutMillis: options.OtlpTimeout || 10000
   });
 
   // Enable logging for debugging
-  // diag.setLogger(new Logger(), DiagLogLevel.INFO);
+  const logLevel = DefaultLogger.getLevel();
+  const diagLogLevel = Object.values(DiagLogLevel).find(
+    (level) => level.toString() === logLevel.toString()
+  ) || DiagLogLevel.INFO;
+  
+  diag.setLogger(new Logger(), diagLogLevel as DiagLogLevel);
+
+  // 配置资源属性
+  const serviceName = process.env.OTEL_SERVICE_NAME || app.name;
+  if (!serviceName) {
+    throw new Error('Service name is required');
+  }
+
+  const resourceAttributes = Object.assign(
+    {
+      // 标准语义属性
+      [ATTR_SERVICE_NAME]: serviceName,
+      [ATTR_SERVICE_VERSION]: process.env.OTEL_SERVICE_VERSION || app.version || '1.0.0',
+      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: process.env.OTEL_ENV || app.env || 'development',
+      // SDK元数据
+      [ATTR_TELEMETRY_SDK_NAME]: 'opentelemetry',
+      [ATTR_TELEMETRY_SDK_LANGUAGE]: 'nodejs',
+      [ATTR_TELEMETRY_SDK_VERSION]: process.env.OTEL_SDK_VERSION || '1.0.0',
+      // 默认资源属性
+      'process.pid': process.pid
+    },
+    options.OtlpResourceAttributes || {}
+  );
 
   const sdk = new NodeSDK({
-    resource: resourceFromAttributes({
-      // 标准语义属性
-      'service.name': process.env.OTEL_SERVICE_NAME || app.name || 'koatty-app',
-      'service.version': process.env.OTEL_SERVICE_VERSION || app.version || '1.0.0',
-      'deployment.environment': process.env.OTEL_ENV || app.env || 'development',
-      
-      // SDK元数据
-      'telemetry.sdk.name': 'opentelemetry',
-      'telemetry.sdk.language': 'nodejs',
-      'telemetry.sdk.version': process.env.OTEL_SDK_VERSION || '1.0.0',
-      
-      // 自定义属性
-      'koatty.version': app.version,
-      'process.pid': process.pid
-    }),
+    resource: resourceFromAttributes(resourceAttributes),
     traceExporter,
-    instrumentations: [
+    instrumentations: options.OtlpInstrumentations || [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-grpc': {
           enabled: true,
@@ -85,11 +113,23 @@ export function initOpenTelemetry(app: Koatty, options: TraceOptions) {
  * @throws {Error} Logs error if SDK initialization fails
  */
 export async function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptions) {
+  const shutdownHandler = async () => {
+    try {
+      await sdk.shutdown();
+      logger.info('OpenTelemetry SDK shut down successfully');
+    } catch (error) {
+      logger.error('Error shutting down OpenTelemetry SDK', error);
+    } finally {
+      app.off("appStop", shutdownHandler); // 确保只执行一次
+    }
+  };
+
   try {
     await sdk.start();
     logger.info('OpenTelemetry SDK started successfully');
+    
   } catch (err) {
-    logger.error(`OpenTelemetry SDK初始化失败: ${err.message}`, {
+    logger.error(`OpenTelemetry SDK initialization failed: ${err.message}`, {
       stack: err.stack,
       code: err.code,
       config: {
@@ -97,18 +137,10 @@ export async function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptio
         serviceName: app.name
       }
     });
-
     // 降级到无操作跟踪器保证应用可用性
-    const noopTracer = trace.getTracerProvider().getTracer('noop');
-    trace.setGlobalTracerProvider({
-      getTracer: () => noopTracer
-    });
+    trace.setGlobalTracerProvider(new BasicTracerProvider());
+    return;
+  } finally {
+    app.on("appStop", shutdownHandler);
   }
-  app.on("appStop", () => {
-    sdk
-      .shutdown()
-      .then(() => logger.info('OpenTelemetry SDK shut down successfully'))
-      .catch((error) => logger.error('Error shutting down OpenTelemetry SDK', error))
-      .finally(() => process.exit(0));
-  });
 }

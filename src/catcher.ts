@@ -2,8 +2,8 @@
  * 
  * @Description: 
  * @Author: richen
- * @Date: 2024-11-11 11:36:07
- * @LastEditTime: 2025-03-20 17:35:32
+ * @Date: 2025-03-21 22:10:12
+ * @LastEditTime: 2025-03-23 11:35:33
  * @License: BSD (3-Clause)
  * @Copyright (c): <richenlin(at)gmail.com>
  */
@@ -19,21 +19,35 @@ import { Span } from "@opentelemetry/api";
  * @return {*}
  */
 export interface extensionOptions {
+  /** 是否开启调试模式 */
   debug?: boolean,
+  /** 超时时间，单位毫秒 */
   timeout?: number,
+  /** 编码格式 */
   encoding?: string,
+  /** 是否终止请求 */
   terminated?: boolean,
+  /** OpenTelemetry Span对象，用于链路追踪 */
   span?: Span,
+  /** 自定义全局异常处理类 */
   globalErrorHandler?: any,
 }
+
 /**
- * Global Error handler
- * @param ctx 
- * @param err 
- * @param span 
- * @param globalErrorHandler 
- * @param _ext 
- * @returns 
+ * Global error catcher for handling exceptions in Koatty framework.
+ * 
+ * @param ctx - Koatty context object
+ * @param err - Error or Exception object to be handled
+ * @param span - Optional span object for tracing
+ * @param globalErrorHandler - Optional custom global error handler
+ * @param _ext - Optional extension options
+ * @returns Result of error handling through Exception handler
+ * 
+ * @description
+ * This function processes errors by:
+ * 1. Handling existing Exception objects with spans
+ * 2. Using custom global error handlers if provided
+ * 3. Falling back to default Exception handling
  */
 export function catcher<T extends Exception>(
   ctx: KoattyContext,

@@ -1,22 +1,29 @@
-/*
+/**
+ * 
  * @Description: 
- * @Usage: 
  * @Author: richen
- * @Date: 2021-11-19 00:24:43
- * @LastEditTime: 2024-11-11 00:01:48
-*/
+ * @Date: 2025-03-21 22:07:11
+ * @LastEditTime: 2025-03-23 11:46:32
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ */
 import { KoattyContext } from "koatty_core";
 import { Exception } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Span, Tags } from "opentracing";
+import { Span } from "@opentelemetry/api";
+import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { inspect } from "util";
 import { catcher, extensionOptions } from "../catcher";
 
 /**
- * wsHandler
- *
- * @param {Koatty} app
- * @returns {*}  
+ * WebSocket request handler middleware for Koatty framework.
+ * Handles WebSocket connections, adds security headers, tracing spans, and timeout control.
+ * 
+ * @param {KoattyContext} ctx - The Koatty context object
+ * @param {Function} next - The next middleware function
+ * @param {extensionOptions} ext - Extension options including timeout, encoding, span and error handlers
+ * @returns {Promise<any>} Returns null on success or error response from catcher
+ * @throws {Exception} Throws exception when status code >= 400 or timeout exceeded
  */
 export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
   const timeout = ext.timeout || 10000;
@@ -29,8 +36,8 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extens
 
   const span = <Span>ext.span;
   if (span) {
-    span.setTag(Tags.HTTP_URL, ctx.originalUrl);
-    span.setTag(Tags.HTTP_METHOD, ctx.method);
+    span.setAttribute(SemanticAttributes.HTTP_URL, ctx.originalUrl);
+    span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
   }
 
 
@@ -40,11 +47,11 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extens
     const msg = `{"action":"${ctx.protocol}","status":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
     Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
     if (span) {
-      span.setTag(Tags.HTTP_STATUS_CODE, ctx.status);
-      span.setTag(Tags.HTTP_METHOD, ctx.method);
-      span.setTag(Tags.HTTP_URL, ctx.url);
-      span.log({ "request": msg });
-      span.finish();
+      span.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, ctx.status);
+      span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
+      span.setAttribute(SemanticAttributes.HTTP_URL, ctx.url);
+      span.addEvent("request", { "message": msg });
+      span.end();
     }
     // ctx = null;
   }
@@ -62,12 +69,18 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extens
   const response: any = ctx.res;
   try {
     if (!ext.terminated) {
-      response.timeout = null;
-      // promise.race
-      await Promise.race([new Promise((resolve, reject) => {
-        response.timeout = setTimeout(reject, timeout, new Exception('Request Timeout', 1, 408));
-        return;
-      }), next()]);
+      response.timeout = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Deadline exceeded')); // 抛出超时异常
+        }, timeout);
+      });
+
+      await Promise.race([next(), response.timeout]).then(() => {
+        clearTimeout(response.timeout);
+      }).catch((err) => {
+        clearTimeout(response.timeout);
+        throw err;
+      });
     }
 
     if (ctx.body !== undefined && ctx.status === 404) {
@@ -82,8 +95,6 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extens
     return catcher(ctx, err, span, ext.globalErrorHandler, ext);
   } finally {
     ctx.res.emit("finish");
-    clearTimeout(response.timeout);
   }
 
 }
-
