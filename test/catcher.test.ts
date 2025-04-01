@@ -2,6 +2,15 @@
  * 
  * @Description: 
  * @Author: richen
+ * @Date: 2025-03-31 11:21:01
+ * @LastEditTime: 2025-03-31 17:39:07
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ */
+/**
+ * 
+ * @Description: 
+ * @Author: richen
  * @Date: 2025-03-21 22:23:25
  * @LastEditTime: 2025-03-21 22:23:48
  * @License: BSD (3-Clause)
@@ -16,7 +25,7 @@ describe('catcher.ts', () => {
   let server: Server;
   const port = 3001;
 
-  beforeAll((done) => {
+  beforeEach((done) => {
     app = new Koa();
     // 创建符合Koa中间件规范的错误处理
     app.use(async (ctx, next) => {
@@ -26,22 +35,13 @@ describe('catcher.ts', () => {
           ctx.throw(404, 'Not Found');
         }
       } catch (err) {
-        catcher(ctx, err, undefined, (err: any, ctx: any) => {
-          ctx.status = err.status || 500;
-          ctx.body = { 
-            code: ctx.status,
-            message: err.expose ? err.message : 'Internal Server Error'
-          };
-        }, { 
-          debug: true,
-          terminated: true 
-        });
+        catcher(ctx, err);
       }
     });
     server = createServer(app.callback()).listen(port, done);
   });
 
-  afterAll((done) => {
+  afterEach((done) => {
     server.close(done);
   });
 
@@ -51,8 +51,8 @@ describe('catcher.ts', () => {
     const response = await fetch(`http://localhost:${port}`);
     expect(response.status).toBe(500);
     expect(await response.json()).toMatchObject({
-      code: 500,
-      message: 'Internal Server Error'
+      code: 1,
+      message: 'sync error'
     });
   });
 
@@ -64,8 +64,8 @@ describe('catcher.ts', () => {
     const response = await fetch(`http://localhost:${port}`);
     expect(response.status).toBe(500);
     expect(await response.json()).toMatchObject({
-      code: 500,
-      message: 'Internal Server Error'
+      code: 1,
+      message: 'async error'
     });
   });
 
@@ -73,7 +73,7 @@ describe('catcher.ts', () => {
     const response = await fetch(`http://localhost:${port}/not-exist`);
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({
-      code: 404,
+      code: 1,
       message: 'Not Found'
     });
   });

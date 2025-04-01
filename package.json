@@ -84,6 +84,7 @@
     "husky": "^4.x.x",
     "jest": "^29.7.0",
     "jest-html-reporters": "^3.x.x",
+    "koa": "^2.16.0",
     "reflect-metadata": "^0.x.x",
     "rollup": "^4.x.x",
     "rollup-plugin-delete": "^2.x.x",
