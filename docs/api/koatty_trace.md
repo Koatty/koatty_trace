@@ -6,13 +6,26 @@
 
 ## Functions
 
-|  Function | Description |
-|  --- | --- |
-|  [Trace(options, app)](./koatty_trace.trace.md) | Trace middleware |
+<table><thead><tr><th>
 
-## Interfaces
+Function
 
-|  Interface | Description |
-|  --- | --- |
-|  [TraceOptions](./koatty_trace.traceoptions.md) | <p>TraceOptions</p><p>  TraceOptions</p> |
 
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[Trace(options, app)](./koatty_trace.trace.md)
+
+
+</td><td>
+
+Middleware function for request tracing and monitoring in Koatty framework. Provides request ID generation, OpenTelemetry tracing, async hooks support, and response handling.
+
+
+</td></tr>
+</tbody></table>

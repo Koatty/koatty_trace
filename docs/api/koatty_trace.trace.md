@@ -4,24 +4,74 @@
 
 ## Trace() function
 
-Trace middleware
+Middleware function for request tracing and monitoring in Koatty framework. Provides request ID generation, OpenTelemetry tracing, async hooks support, and response handling.
 
 **Signature:**
 
 ```typescript
-export declare function Trace(options: TraceOptions, app: Koatty): (ctx: KoattyContext, next: KoattyNext) => Promise<any>;
+export declare function Trace(options: TraceOptions, app: Koatty): Promise<(ctx: KoattyContext, next: KoattyNext) => Promise<any>>;
 ```
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  options | [TraceOptions](./koatty_trace.traceoptions.md) |  |
-|  app | Koatty |  |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+options
+
+
+</td><td>
+
+TraceOptions
+
+
+</td><td>
+
+Configuration options for tracing middleware
+
+
+</td></tr>
+<tr><td>
+
+app
+
+
+</td><td>
+
+Koatty
+
+
+</td><td>
+
+Koatty application instance
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
-(ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;any&gt;
+Promise&lt;(ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;any&gt;&gt;
 
-{<!-- -->\*<!-- -->} {<!-- -->Koa.Middleware<!-- -->}
+Middleware function that handles request context and tracing
+
+Features: - Request ID generation and propagation - OpenTelemetry integration for distributed tracing - W3C Trace Context support - Async hooks for request context tracking - Server shutdown handling - Response wrapping and error handling
+
+## Example
+
+app.use(Trace(<!-- -->{ EnableTrace: true, RequestIdName: 'requestId' }<!-- -->, app));
 

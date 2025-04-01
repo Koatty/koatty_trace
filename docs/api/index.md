@@ -6,7 +6,24 @@
 
 ## Packages
 
-|  Package | Description |
-|  --- | --- |
-|  [koatty\_trace](./koatty_trace.md) |  |
+<table><thead><tr><th>
 
+Package
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[koatty\_trace](./koatty_trace.md)
+
+
+</td><td>
+
+
+</td></tr>
+</tbody></table>
