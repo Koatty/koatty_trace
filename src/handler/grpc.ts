@@ -7,7 +7,7 @@
  * @License: BSD (3-Clause)
  * @Copyright (c): <richenlin(at)gmail.com>
  */
-import { IRpcServerWriteableStream, KoattyContext } from "koatty_core";
+import { IRpcServerCallImpl, KoattyContext } from "koatty_core";
 import { Exception, StatusCodeConvert } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from '@opentelemetry/api';
@@ -59,7 +59,7 @@ export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: exte
     // ctx = null;
   };
   ctx.res.once("finish", finish);
-  (<IRpcServerWriteableStream<any, any>>ctx?.rpc?.call).once("error", finish);
+  (<IRpcServerCallImpl<any, any>>ctx?.rpc?.call).once("error", finish);
 
   // try /catch
   const response: any = {};
