@@ -89,7 +89,7 @@ export async function wsHandler(ctx: KoattyContext, next: Function, ext?: extens
     if (ctx.status >= 400) {
       throw new Exception(ctx.message, 1, ctx.status);
     }
-    ctx.websocket.send(inspect(ctx.body || ''), null);
+    ctx?.websocket?.send(inspect(ctx.body || ''), null);
     return null;
   } catch (err: any) {
     return catcher(ctx, err, span, ext.globalErrorHandler, ext);

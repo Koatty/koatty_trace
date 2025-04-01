@@ -62,7 +62,7 @@ export function catcher<T extends Exception>(
   ctx: KoattyContext,
   err: Error | Exception | T,
   span?: Span,
-  globalErrorHandler?: any,
+  globalErrorHandler?: T,
   _ext?: extensionOptions
 ) {
   const sanitizedMessage = getMessage(ctx, err);

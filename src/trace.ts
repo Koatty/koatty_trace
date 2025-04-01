@@ -88,16 +88,16 @@ export async function Trace(options: TraceOptions, app: Koatty) {
       terminated = true;
     }
     // 
-    let requestId = '';
+    let requestId = '', headerRequestIdValue;
     switch (ctx.protocol) {
       case "grpc":
         // originalPath
         Helper.define(ctx, 'originalPath', ctx.getMetaData("originalPath")[0]);
         // http version
         Helper.define(ctx, 'version', "2.0");
-        const request: any = ctx.getMetaData("_body")[0] || {};
-        requestId = `${ctx.getMetaData(<string>options.RequestIdName)[0]}` ||
-          `${request[<string>options.RequestIdName] || ''}`;
+        const request: any = ctx?.getMetaData("_body")[0] || {};
+        headerRequestIdValue = ctx?.getMetaData(<string>options.RequestIdName) ||
+          request[<string>options.RequestIdName] || '';
         break;
       default:
         // originalPath
@@ -106,16 +106,19 @@ export async function Trace(options: TraceOptions, app: Koatty) {
         Helper.define(ctx, 'version', ctx.req.httpVersion);
         if (options.RequestIdHeaderName) {
           const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
-          const headerRequestIdValue = ctx.headers[requestIdHeaderName];
-          if (Helper.isArray(headerRequestIdValue)) {
-            requestId = headerRequestIdValue.join(".");
-          } else {
-            requestId = headerRequestIdValue;
-          }
-          requestId = requestId ||
-            `${ctx.query[<string>options.RequestIdName] || ''}`;
+          headerRequestIdValue = ctx.headers ? ctx.headers[requestIdHeaderName] :
+            ctx.query?.[options.RequestIdName] || '';
+
+          break;
         }
-        break;
+    }
+    if (!headerRequestIdValue) {
+      headerRequestIdValue = '';
+    }
+    if (Helper.isArray(headerRequestIdValue)) {
+      requestId = headerRequestIdValue?.join(".");
+    } else {
+      requestId = headerRequestIdValue;
     }
 
     requestId = requestId || getTraceId(options);
@@ -156,7 +159,7 @@ export async function Trace(options: TraceOptions, app: Koatty) {
       span.setAttribute("http.request_id", requestId);
       span.setAttribute("http.method", ctx.method);
       span.setAttribute("http.route", ctx.path);
-      ctx.setMetaData("tracer_span", span);
+      if (ctx.setMetaData) ctx?.setMetaData("tracer_span", span);
     }
 
     const ext = {
@@ -174,11 +177,11 @@ export async function Trace(options: TraceOptions, app: Koatty) {
         const asyncResource = createAsyncResource();
         wrapEmitter(ctx.req, asyncResource);
         wrapEmitter(ctx.res, asyncResource);
-        return respWapper(ctx, next, options, ext);
+        return respWarper(ctx, next, options, ext);
       });
     }
     try {
-      return await respWapper(ctx, next, options, ext);
+      return await respWarper(ctx, next, options, ext);
     } finally {
       if (span) {
         span.end(); // 确保Span正确结束
@@ -212,30 +215,30 @@ function getTraceId(options?: TraceOptions) {
  * @param ext - Extension options for trace handling
  * @returns Promise that resolves to the handler result based on protocol
  */
-async function respWapper(ctx: KoattyContext, next: KoattyNext,
+async function respWarper(ctx: KoattyContext, next: KoattyNext,
   options: TraceOptions, ext: extensionOptions) {
   // metadata
-  if (options.RequestIdName) ctx.setMetaData(options.RequestIdName, ctx.requestId);
+  if (options.RequestIdName && ctx.setMetaData) ctx?.setMetaData(options.RequestIdName, ctx.requestId);
   // protocol handler
   // 支持多协议处理（grpc/ws/wss/http/https/graphql）
-    switch (ctx.protocol.toLowerCase()) {
-      case "grpc":
-        // allow bypassing koa
-        ctx.respond = false;
-        if (ctx.rpc && options.RequestIdName)
-          ctx.rpc.call.metadata.set(options.RequestIdName, ctx.requestId);
-        return gRPCHandler(ctx, next, ext);
-      case "ws":
-      case "wss":
-        // allow bypassing koa
-        ctx.respond = false;
-        if (options.RequestIdHeaderName)
-          ctx.set(options.RequestIdHeaderName, ctx.requestId);
-        return wsHandler(ctx, next, ext);
-      default:
-        // response header
-        if (options.RequestIdHeaderName)
-          ctx.set(options.RequestIdHeaderName, ctx.requestId);
-        return httpHandler(ctx, next, ext);
-    }
+  switch (ctx.protocol.toLowerCase()) {
+    case "grpc":
+      // allow bypassing koa
+      ctx.respond = false;
+      if (ctx.rpc && options.RequestIdName)
+        ctx.rpc.call.metadata.set(options.RequestIdName, ctx.requestId);
+      return gRPCHandler(ctx, next, ext);
+    case "ws":
+    case "wss":
+      // allow bypassing koa
+      ctx.respond = false;
+      if (options.RequestIdHeaderName)
+        ctx.set(options.RequestIdHeaderName, ctx.requestId);
+      return wsHandler(ctx, next, ext);
+    default:
+      // response header
+      if (options.RequestIdHeaderName)
+        ctx.set(options.RequestIdHeaderName, ctx.requestId);
+      return httpHandler(ctx, next, ext);
+  }
 }
