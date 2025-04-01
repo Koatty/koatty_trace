@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.14.0](https://github.com/koatty/koatty_trace/compare/v1.13.1...v1.14.0) (2025-04-01)
+
+
+### Features
+
+* enhance error handling and tracing capabilities in Koatty framework ([77c9feb](https://github.com/koatty/koatty_trace/commit/77c9feb5eefa6a01aff220028ff907151e8bca4d))
+* enhance OpenTelemetry integration with improved configuration and error handling ([8666029](https://github.com/koatty/koatty_trace/commit/866602917aa7171746793435689c88c2f003a9c3))
+
+
+### Bug Fixes
+
+* ctx.headers ([2e1674f](https://github.com/koatty/koatty_trace/commit/2e1674fec9dfd974586429e9205a06476d1a8593))
+
 ### [1.13.1](https://github.com/koatty/koatty_trace/compare/v1.13.0...v1.13.1) (2024-11-11)
 
 
