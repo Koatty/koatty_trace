@@ -15,8 +15,8 @@ importers:
         specifier: ^0.57.0
         version: 0.57.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/core':
-        specifier: 1.9.0
-        version: 1.9.0(@opentelemetry/api@1.9.0)
+        specifier: 2.0.0
+        version: 2.0.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/exporter-trace-otlp-http':
         specifier: ^0.200.0
         version: 0.200.0(@opentelemetry/api@1.9.0)
@@ -49,7 +49,7 @@ importers:
         version: 1.10.3(koatty_lib@1.4.1)(koatty_logger@2.1.8)
       koatty_core:
         specifier: ^1.x.x
-        version: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.13.1)
+        version: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.14.0)
       koatty_exception:
         specifier: ^1.x.x
         version: 1.6.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)
@@ -2936,8 +2936,8 @@ packages:
       koatty_lib: ^1.x.x
       tslib: ^2.x.x
 
-  koatty_trace@1.13.1:
-    resolution: {integrity: sha512-1tjmXiUu9uhO7FPStE7Q5aGz9hVs/xVr7hN0sBYS/qNyxsmko17zIlOC3wJ8A5S7HB5reVUo2c04/qPYQ6TltA==}
+  koatty_trace@1.14.0:
+    resolution: {integrity: sha512-xIEAsIMdpJUXUNRyDbzftC6HK4Z/rDgKocZV+Rf+ZOFjqq30AsNGLa2lVp595Qt2qgTzLGXk6oPT2jQKK/V2fg==}
     engines: {node: '>10.0.0'}
     peerDependencies:
       koatty_container: ^1.x.x
@@ -3235,10 +3235,6 @@ packages:
   opencollective-postinstall@2.0.3:
     resolution: {integrity: sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==}
     hasBin: true
-
-  opentracing@0.14.7:
-    resolution: {integrity: sha512-vz9iS7MJ5+Bp1URw8Khvdyw1H/hGvzHWlKQ7eRrQojSCDL1/SrWfrY9QebLw97n2deyRtzHRC3MkQfVNUCo91Q==}
-    engines: {node: '>=0.10'}
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -7504,7 +7500,7 @@ snapshots:
       koatty_lib: 1.4.1
       koatty_logger: 2.1.8(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(tslib@2.8.1)
 
-  koatty_core@1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.13.1):
+  koatty_core@1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.14.0):
     dependencies:
       http-assert: 1.5.0
       koa: 2.16.0
@@ -7513,7 +7509,7 @@ snapshots:
       koatty_exception: 1.6.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)
       koatty_lib: 1.4.1
       koatty_logger: 2.1.8(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(tslib@2.8.1)
-      koatty_trace: 1.13.1(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)
+      koatty_trace: 1.14.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)
       on-finished: 2.4.1
 
   koatty_exception@1.6.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8):
@@ -7521,7 +7517,7 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.30.0
       koatty_container: 1.10.3(koatty_lib@1.4.1)(koatty_logger@2.1.8)
-      koatty_core: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.13.1)
+      koatty_core: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.14.0)
       koatty_lib: 1.4.1
       koatty_logger: 2.1.8(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(tslib@2.8.1)
 
@@ -7535,7 +7531,7 @@ snapshots:
   koatty_logger@2.1.8(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(tslib@2.8.1):
     dependencies:
       koatty_lib: 1.4.1
-      koatty_logger: koatty_trace@file:(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_trace@1.13.1)
+      koatty_logger: koatty_trace@file:(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_trace@1.14.0)
       tslib: 2.8.1
       winston: 3.17.0
       winston-daily-rotate-file: 4.7.1(winston@3.17.0)
@@ -7546,17 +7542,7 @@ snapshots:
       - koatty_exception
       - supports-color
 
-  koatty_trace@1.13.1(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8):
-    dependencies:
-      koatty_container: 1.10.3(koatty_lib@1.4.1)(koatty_logger@2.1.8)
-      koatty_core: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.13.1)
-      koatty_exception: 1.6.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)
-      koatty_lib: 1.4.1
-      koatty_logger: 2.1.8(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(tslib@2.8.1)
-      opentracing: 0.14.7
-      uuid: 9.0.1
-
-  koatty_trace@file:(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_trace@1.13.1):
+  koatty_trace@1.14.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8):
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/auto-instrumentations-node': 0.57.0(@opentelemetry/api@1.9.0)
@@ -7571,10 +7557,34 @@ snapshots:
       '@opentelemetry/sdk-trace-node': 2.0.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.30.0
       koatty_container: 1.10.3(koatty_lib@1.4.1)(koatty_logger@2.1.8)
-      koatty_core: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.13.1)
+      koatty_core: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.14.0)
       koatty_exception: 1.6.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)
       koatty_lib: 1.4.1
-      koatty_logger: koatty_trace@file:(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_trace@1.13.1)
+      koatty_logger: 2.1.8(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(tslib@2.8.1)
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
+  koatty_trace@file:(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_trace@1.14.0):
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/auto-instrumentations-node': 0.57.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/core': 2.0.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/exporter-trace-otlp-http': 0.200.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation': 0.200.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-http': 0.200.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-koa': 0.48.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources': 2.0.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-node': 0.200.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-base': 2.0.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-node': 2.0.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/semantic-conventions': 1.30.0
+      koatty_container: 1.10.3(koatty_lib@1.4.1)(koatty_logger@2.1.8)
+      koatty_core: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.14.0)
+      koatty_exception: 1.6.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)
+      koatty_lib: 1.4.1
+      koatty_logger: koatty_trace@file:(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_trace@1.14.0)
       uuid: 9.0.1
     transitivePeerDependencies:
       - encoding
@@ -7839,8 +7849,6 @@ snapshots:
       is-wsl: 2.2.0
 
   opencollective-postinstall@2.0.3: {}
-
-  opentracing@0.14.7: {}
 
   optionator@0.9.4:
     dependencies:

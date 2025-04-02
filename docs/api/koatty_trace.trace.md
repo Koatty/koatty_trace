@@ -9,7 +9,7 @@ Middleware function for request tracing and monitoring in Koatty framework. Prov
 **Signature:**
 
 ```typescript
-export declare function Trace(options: TraceOptions, app: Koatty): Promise<(ctx: KoattyContext, next: KoattyNext) => Promise<any>>;
+export declare function Trace(options: TraceOptions, app: Koatty): (ctx: KoattyContext, next: KoattyNext) => Promise<any>;
 ```
 
 ## Parameters
@@ -65,7 +65,7 @@ Koatty application instance
 </tbody></table>
 **Returns:**
 
-Promise&lt;(ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;any&gt;&gt;
+(ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;any&gt;
 
 Middleware function that handles request context and tracing
 
