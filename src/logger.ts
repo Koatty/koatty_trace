@@ -1,3 +1,12 @@
+/**
+ * 
+ * @Description: 
+ * @Author: richen
+ * @Date: 2025-03-20 12:08:57
+ * @LastEditTime: 2025-04-02 15:03:04
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ */
 
 import { DefaultLogger } from "koatty_logger";
 

@@ -7,15 +7,6 @@
  * @License: BSD (3-Clause)
  * @Copyright (c): <richenlin(at)gmail.com>
  */
-/**
- * 
- * @Description: 
- * @Author: richen
- * @Date: 2025-03-21 22:10:12
- * @LastEditTime: 2025-03-23 11:35:33
- * @License: BSD (3-Clause)
- * @Copyright (c): <richenlin(at)gmail.com>
- */
 
 import { IOCContainer } from "koatty_container";
 import { KoattyContext } from "koatty_core";
