@@ -7,7 +7,7 @@
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
 import { IOCContainer } from "koatty_container";
-import { Koatty, KoattyContext, KoattyNext } from "koatty_core";
+import { AppEvent, Koatty, KoattyContext, KoattyNext } from "koatty_core";
 import { Helper } from "koatty_lib";
 import { context, trace } from '@opentelemetry/api';
 import { defaultTextMapGetter, defaultTextMapSetter } from '@opentelemetry/api';
@@ -60,7 +60,7 @@ const defaultOptions = {
  *   RequestIdName: 'requestId'
  * }, app));
  */
-export async function Trace(options: TraceOptions, app: Koatty) {
+export function Trace(options: TraceOptions, app: Koatty) {
   options = { ...defaultOptions, ...options };
 
   // 
@@ -69,7 +69,9 @@ export async function Trace(options: TraceOptions, app: Koatty) {
     tracer = app.getMetaData("tracer")[0];
     if (!tracer) {
       tracer = initOpenTelemetry(app, options)
-      await startTracer(tracer, app, options);
+      app.once(AppEvent.appStart, async () => {
+        await startTracer(tracer, app, options);
+      });
     }
   }
   // global error handler class
