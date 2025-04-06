@@ -70,6 +70,7 @@ export abstract class BaseHandler implements Handler {
  */
 export enum ProtocolType {
   HTTP = 'http',
-  GRPC = 'grpc',
-  WS = 'ws'
+  GRPC = 'grpc', 
+  WS = 'ws',
+  GRAPHQL = 'graphql'
 }

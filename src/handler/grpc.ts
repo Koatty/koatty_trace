@@ -8,6 +8,8 @@
  * @Copyright (c): <richenlin(at)gmail.com>
  */
 import { BaseHandler, Handler } from './base';
+import { Transform, Stream } from 'stream';
+import * as zlib from 'zlib';
 import { IRpcServerCallImpl, KoattyContext } from "koatty_core";
 import { Exception, StatusCodeConvert } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
@@ -44,8 +46,8 @@ export class GrpcHandler extends BaseHandler implements Handler {
 
   async handle(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
     const timeout = ext.timeout || 10000;
+    const compression = ext.compression || 'none'; // none|gzip|brotli
 
-    ctx?.rpc?.call?.metadata?.set('X-Powered-By', 'Koatty');
     ctx?.rpc?.call?.sendMetadata(ctx.rpc.call.metadata);
 
     this.commonPreHandle(ctx, ext);
@@ -86,6 +88,17 @@ export class GrpcHandler extends BaseHandler implements Handler {
       }
       if (ctx.status >= 400) {
         throw new Exception(ctx.message, 0, ctx.status);
+      }
+
+      // 仅处理响应流压缩
+      if (compression !== 'none' && ctx.body instanceof Stream) {
+        const compressStream = compression === 'gzip' ? 
+          zlib.createGzip({ level: 6 }) : zlib.createBrotliCompress({ 
+            params: { 
+              [zlib.constants.BROTLI_PARAM_QUALITY]: 4 
+            }
+          });
+        ctx.body = ctx.body.pipe(compressStream);
       }
       ctx.rpc.callback(null, ctx.body);
       return null;

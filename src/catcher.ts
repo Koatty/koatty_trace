@@ -31,6 +31,8 @@ export interface extensionOptions {
   span?: Span,
   /** 自定义全局异常处理类 */
   globalErrorHandler?: any,
+  /** 压缩方式 none|gzip|brotli */
+  compression?: string,
 }
 
 /**
