@@ -2,8 +2,8 @@
  * 
  * @Description: 
  * @Author: richen
- * @Date: 2025-03-21 22:07:11
- * @LastEditTime: 2025-03-23 11:55:03
+ * @Date: 2025-04-04 12:21:48
+ * @LastEditTime: 2025-04-04 20:00:41
  * @License: BSD (3-Clause)
  * @Copyright (c): <richenlin(at)gmail.com>
  */
@@ -15,6 +15,7 @@ import { Span } from "@opentelemetry/api";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { Stream } from 'stream';
 import { catcher, extensionOptions } from "../catcher";
+import { BaseHandler, Handler } from "./base";
 
 // StatusEmpty
 const StatusEmpty = [204, 205, 304];
@@ -37,66 +38,62 @@ const StatusEmpty = [204, 205, 304];
  * - OpenTelemetry tracing support
  * - Automatic error handling
  */
-export async function httpHandler(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
-  const timeout = ext.timeout || 10000;
-  // Encoding
-  ctx.encoding = ext.encoding;
-  // auto send security header
-  ctx.set('X-Powered-By', 'Koatty');
-  ctx.set('X-Content-Type-Options', 'nosniff');
-  ctx.set('X-XSS-Protection', '1;mode=block');
+export class HttpHandler extends BaseHandler implements Handler {
+  private static instance: HttpHandler;
 
-  const span = <Span>ext.span;
-  if (span) {
-    span.setAttribute(SemanticAttributes.HTTP_URL, ctx.originalUrl);
-    span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
+  private constructor() {
+    super();
   }
 
-  // response finish
-  ctx?.res?.once('finish', () => {
-    const now = Date.now();
-    const msg = `{"action":"${ctx.method}","status":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
-    Logger[(ctx.status >= 400 ? 'Error' : 'Info')](msg);
-    if (span) {
-      span.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, ctx.status);
-      span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
-      span.setAttribute(SemanticAttributes.HTTP_URL, ctx.url);
-      span.addEvent("request", { "message": msg });
-      span.end();
+  public static getInstance(): HttpHandler {
+    if (!HttpHandler.instance) {
+      HttpHandler.instance = new HttpHandler();
     }
-    // ctx = null;
-  });
+    return HttpHandler.instance;
+  }
 
-  // try /catch
-  const response: any = ctx.res;
-  try {
-    if (!ext.terminated) {
-      response.timeout = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Deadline exceeded')); // 抛出超时异常
-        }, timeout);
-      });
+  async handle(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
+    const timeout = ext.timeout || 10000;
 
-      await Promise.race([next(), response.timeout]).then(() => {
-        clearTimeout(response.timeout);
-      }).catch((err) => {
-        clearTimeout(response.timeout);
-        throw err;
-      });
+    this.commonPreHandle(ctx, ext);
+    ctx?.res?.once('finish', () => {
+      const now = Date.now();
+      const msg = `{"action":"${ctx.method}","status":"${ctx.status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath || '/'}"}`;
+      this.commonPostHandle(ctx, ext, msg);
+      // ctx = null;
+    });
+
+    // try /catch
+    const response: any = ctx.res;
+    try {
+      if (!ext.terminated) {
+        response.timeout = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Deadline exceeded')); // 抛出超时异常
+          }, timeout);
+        });
+
+        await Promise.race([next(), response.timeout]).then(() => {
+          clearTimeout(response.timeout);
+        }).catch((err) => {
+          clearTimeout(response.timeout);
+          throw err;
+        });
+      }
+
+      if (ctx.body !== undefined && ctx.status === 404) {
+        ctx.status = 200;
+      }
+
+      if (ctx.status >= 400) {
+        throw new Exception(ctx.message, 1, ctx.status);
+      }
+      return respond(ctx);
+    } catch (err: any) {
+      return this.handleError(err, ctx, ext);
+    } finally {
+      clearTimeout(response.timeout);
     }
-
-    if (ctx.body !== undefined && ctx.status === 404) {
-      ctx.status = 200;
-    }
-
-    if (ctx.status >= 400) {
-      throw new Exception(ctx.message, 1, ctx.status);
-    }
-    return respond(ctx);
-  } catch (err: any) {
-    return catcher(ctx, err, span, ext.globalErrorHandler, ext);
-  } finally {
-    clearTimeout(response.timeout);
   }
 }
 
@@ -107,7 +104,7 @@ export async function httpHandler(ctx: KoattyContext, next: Function, ext?: exte
  * @param {KoattyContext} ctx
  * @returns {*}  
  */
-export function respond(ctx: KoattyContext) {
+function respond(ctx: KoattyContext) {
   // allow bypassing koa
   if (false === ctx.respond) return;
 

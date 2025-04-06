@@ -7,6 +7,7 @@
  * @License: BSD (3-Clause)
  * @Copyright (c): <richenlin(at)gmail.com>
  */
+import { BaseHandler, Handler } from './base';
 import { IRpcServerCallImpl, KoattyContext } from "koatty_core";
 import { Exception, StatusCodeConvert } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
@@ -27,70 +28,71 @@ import { catcher, extensionOptions } from '../catcher';
  * @throws {Exception} When response status is >= 400
  * @throws {Error} When request timeout exceeded
  */
-export async function gRPCHandler(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
-  const timeout = ext.timeout || 10000;
-  // Encoding
-  ctx.encoding = ext.encoding;
+export class GrpcHandler extends BaseHandler implements Handler {
+  private static instance: GrpcHandler;
 
-  ctx?.rpc?.call?.metadata?.set('X-Powered-By', 'Koatty');
-  ctx?.rpc?.call?.sendMetadata(ctx.rpc.call.metadata);
-
-  const span = <Span>ext?.span;
-  if (span) {
-    span.setAttribute(SemanticAttributes.HTTP_URL, ctx.originalUrl);
-    span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
+  private constructor() {
+    super();
   }
 
-
-  // event callback
-  const finish = () => {
-    const now = Date.now();
-    const status = StatusCodeConvert(ctx.status);
-    const msg = `{"action":"${ctx.protocol}","status":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
-    Logger[(status > 0 ? 'Error' : 'Info')](msg);
-    if (span) {
-      span.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, status);
-      span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
-      span.setAttribute(SemanticAttributes.HTTP_URL, ctx.url);
-      span.addEvent("request", { "message": msg });
-      span.end();
+  public static getInstance(): GrpcHandler {
+    if (!GrpcHandler.instance) {
+      GrpcHandler.instance = new GrpcHandler();
     }
+    return GrpcHandler.instance;
+  }
 
-    // ctx = null;
-  };
-  ctx.res.once("finish", finish);
-  (<IRpcServerCallImpl<any, any>>ctx?.rpc?.call).once("error", finish);
+  async handle(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
+    const timeout = ext.timeout || 10000;
 
-  // try /catch
-  const response: any = {};
+    ctx?.rpc?.call?.metadata?.set('X-Powered-By', 'Koatty');
+    ctx?.rpc?.call?.sendMetadata(ctx.rpc.call.metadata);
 
-  try {
-    if (!ext.terminated) {
-      response.timeout = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Deadline exceeded')); // 抛出超时异常
-        }, timeout);
-      });
+    this.commonPreHandle(ctx, ext);
 
-      await Promise.race([next(), response.timeout]).then(() => {
-        clearTimeout(response.timeout);
-      }).catch((err) => {
-        clearTimeout(response.timeout);
-        throw err;
-      });
+    // event callback
+    ctx.res.once("finish", () => {
+      const now = Date.now();
+      const status = StatusCodeConvert(ctx.status);
+      const msg = `{"action":"${ctx.method}","status":"${status}","startTime":"${ctx.startTime}","duration":"${(now - ctx.startTime) || 0}","requestId":"${ctx.requestId}","endTime":"${now}","path":"${ctx.originalPath}"}`;
+      this.commonPostHandle(ctx, ext, msg);
+      // ctx = null;
+    });
+    (<IRpcServerCallImpl<any, any>>ctx?.rpc?.call).once("error", (err) => {
+      this.handleError(err, ctx, ext);
+    });
+
+    // try /catch
+    const response: any = {};
+
+    try {
+      if (!ext.terminated) {
+        response.timeout = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Deadline exceeded')); // 抛出超时异常
+          }, timeout);
+        });
+
+        await Promise.race([next(), response.timeout]).then(() => {
+          clearTimeout(response.timeout);
+        }).catch((err) => {
+          clearTimeout(response.timeout);
+          throw err;
+        });
+      }
+
+      if (ctx.body !== undefined && ctx.status === 404) {
+        ctx.status = 200;
+      }
+      if (ctx.status >= 400) {
+        throw new Exception(ctx.message, 0, ctx.status);
+      }
+      ctx.rpc.callback(null, ctx.body);
+      return null;
+    } catch (err: any) {
+      return this.handleError(err, ctx, ext);
+    } finally {
+      ctx.res.emit("finish");
     }
-
-    if (ctx.body !== undefined && ctx.status === 404) {
-      ctx.status = 200;
-    }
-    if (ctx.status >= 400) {
-      throw new Exception(ctx.message, 0, ctx.status);
-    }
-    ctx.rpc.callback(null, ctx.body);
-    return null;
-  } catch (err: any) {
-    return catcher(ctx, err, span, ext.globalErrorHandler, ext);
-  } finally {
-    ctx.res.emit("finish");
   }
 }
