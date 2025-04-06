@@ -210,7 +210,7 @@ function respond(ctx: KoattyContext, ext?: extensionOptions) {
 
   // body: json
   body = JSON.stringify(body);
-  if (compressSync && shouldCompress) {
+  if (compressSync && compression !== 'none') {
     body = compressSync(body);
   }
   if (!res.headersSent) {
