@@ -8,6 +8,7 @@
  * @Copyright (c): <richenlin(at)gmail.com>
  */
 import { Instrumentation } from '@opentelemetry/instrumentation';
+import { KoattyContext } from 'koatty_core';
 
 /**
  * TraceOptions
@@ -16,6 +17,19 @@ import { Instrumentation } from '@opentelemetry/instrumentation';
  * @interface TraceOptions
  */
 export interface TraceOptions {
+  /**
+   * 自定义Span属性注入函数
+   */
+  spanAttributes?: (ctx: KoattyContext) => Record<string, any>;
+  /**
+   * Trace状态指标上报函数
+   */
+  metricsReporter?: (metrics: {
+    duration: number;
+    status: number;
+    path: string;
+    attributes: Record<string, any>;
+  }) => void;
   RequestIdHeaderName?: string;
   RequestIdName?: string;
   IdFactory?: Function;
@@ -44,6 +58,9 @@ export interface TraceOptions {
   /**
    * Sampling rate for spans (0.0 - 1.0)
    */
+  /**
+   * 采样率 (0.0 - 1.0)
+   */
   SamplingRate?: number;
   /**
    * Maximum number of spans in batch queue (default: 2048)
@@ -61,4 +78,9 @@ export interface TraceOptions {
    * Timeout in milliseconds for batch export (default: 30000)
    */
   BatchExportTimeout?: number;
+  /**
+   * 是否启用拓扑分析
+   * @default false
+   */
+  EnableTopology?: boolean;
 }

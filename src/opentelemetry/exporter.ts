@@ -11,31 +11,79 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { ExportResult, ExportResultCode } from '@opentelemetry/core';
 
 /**
- * Custom OTLP Trace Exporter with retry mechanism
+ * Custom OTLP Trace Exporter with retry and circuit breaker mechanism
  */
 export class RetryOTLPTraceExporter extends OTLPTraceExporter {
   private readonly maxRetries: number;
   private readonly retryDelay: number;
+  private readonly failureThreshold: number;
+  private readonly resetTimeout: number;
+  
+  private failureCount = 0;
+  private lastFailureTime = 0;
+  private circuitState: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
 
   constructor(config: any) {
     super(config);
     this.maxRetries = config.maxRetries || 3;
     this.retryDelay = config.retryDelay || 1000;
+    this.failureThreshold = config.failureThreshold || 5;
+    this.resetTimeout = config.resetTimeout || 30000;
   }
 
   async export(spans: any, resultCallback: (result: ExportResult) => void) {
+    // Check circuit breaker state
+    if (this.circuitState === 'OPEN') {
+      const now = Date.now();
+      if (now - this.lastFailureTime > this.resetTimeout) {
+        this.circuitState = 'HALF_OPEN';
+      } else {
+        resultCallback({
+          code: ExportResultCode.FAILED,
+          error: new Error('Circuit breaker is open - skipping export')
+        });
+        return;
+      }
+    }
+
     let lastError: Error;
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        await super.export(spans, resultCallback);
-        return;
+        const result = await super.export(spans, resultCallback);
+        
+        // Reset circuit if successful in HALF_OPEN state
+        if (this.circuitState === 'HALF_OPEN') {
+          this.resetCircuit();
+        }
+        return result;
       } catch (error) {
         lastError = error;
+        
+        // Update failure count and check threshold
+        this.failureCount++;
+        if (this.failureCount >= this.failureThreshold) {
+          this.tripCircuit();
+        }
+
         if (attempt < this.maxRetries) {
           await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
         }
       }
     }
+
     resultCallback({code: ExportResultCode.FAILED, error: lastError});
+  }
+
+  private tripCircuit() {
+    this.circuitState = 'OPEN';
+    this.lastFailureTime = Date.now();
+    this.failureCount = 0;
+    console.warn('Circuit breaker tripped - stopping exports temporarily');
+  }
+
+  private resetCircuit() {
+    this.circuitState = 'CLOSED';
+    this.failureCount = 0;
+    console.info('Circuit breaker reset - exports resumed');
   }
 }
