@@ -1,10 +1,11 @@
-/*
+/**
+ * 
+ * @Description: 
  * @Author: richen
- * @Date: 2020-11-20 17:37:32
- * @LastEditors: Please set LastEditors
- * @LastEditTime: 2024-11-11 11:36:33
+ * @Date: 2025-04-04 12:21:48
+ * @LastEditTime: 2025-04-04 19:11:05
  * @License: BSD (3-Clause)
- * @Copyright (c) - <richenlin(at)gmail.com>
+ * @Copyright (c): <richenlin(at)gmail.com>
  */
 import { IOCContainer } from "koatty_container";
 import { AppEvent, Koatty, KoattyContext, KoattyNext } from "koatty_core";
@@ -13,9 +14,8 @@ import { context, trace } from '@opentelemetry/api';
 import { defaultTextMapGetter, defaultTextMapSetter } from '@opentelemetry/api';
 import { v4 as uuidv4 } from "uuid";
 import { extensionOptions } from "./catcher";
-import { gRPCHandler } from './handler/grpc';
-import { httpHandler } from './handler/http';
-import { wsHandler } from './handler/ws';
+import { HandlerFactory } from './handler/factory';
+import { ProtocolType } from './handler/base';
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
 import { initOpenTelemetry, startTracer } from "./opentelemetry";
 import { TraceOptions } from "./itrace";
@@ -223,24 +223,23 @@ async function respWarper(ctx: KoattyContext, next: KoattyNext,
   if (options.RequestIdName && ctx.setMetaData) ctx?.setMetaData(options.RequestIdName, ctx.requestId);
   // protocol handler
   // 支持多协议处理（grpc/ws/wss/http/https/graphql）
-  switch (ctx.protocol.toLowerCase()) {
-    case "grpc":
-      // allow bypassing koa
-      ctx.respond = false;
-      if (ctx.rpc && options.RequestIdName)
-        ctx.rpc.call.metadata.set(options.RequestIdName, ctx.requestId);
-      return gRPCHandler(ctx, next, ext);
-    case "ws":
-    case "wss":
-      // allow bypassing koa
-      ctx.respond = false;
-      if (options.RequestIdHeaderName)
-        ctx.set(options.RequestIdHeaderName, ctx.requestId);
-      return wsHandler(ctx, next, ext);
-    default:
-      // response header
-      if (options.RequestIdHeaderName)
-        ctx.set(options.RequestIdHeaderName, ctx.requestId);
-      return httpHandler(ctx, next, ext);
+  // allow bypassing koa
+  const protocol = (ctx?.protocol || "http").toLowerCase();
+  if (protocol === "grpc" ||
+    protocol === "ws" ||
+    protocol === "wss") {
+    ctx.respond = false;
   }
+
+  // response header
+  if (options.RequestIdHeaderName) {
+    ctx.set(options.RequestIdHeaderName, ctx.requestId);
+  }
+  if (ctx.rpc?.call?.metadata && options.RequestIdName) {
+    ctx.rpc.call.metadata.set(options.RequestIdName, ctx.requestId);
+  }
+
+  const protocolType = protocol as ProtocolType;
+  const handler = HandlerFactory.getHandler(protocolType);
+  return handler.handle(ctx, next, ext);
 }

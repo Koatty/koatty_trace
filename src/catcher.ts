@@ -56,76 +56,67 @@ export function catcher<T extends Exception>(
   globalErrorHandler?: T,
   _ext?: extensionOptions
 ) {
-  const sanitizedMessage = getMessage(ctx, err);
-  const status = getStatus(ctx, err);
+  const { message: sanitizedMessage, status } = getErrorInfo(ctx, err);
   const code = (<T>err).code || 1;
+  const sanitizedStack = sanitizeStack(err.stack);
 
   // 如果是异常对象，直接返回
   if (isException(err)) {
     return (<Exception>err).setCode(code).setStatus(status).
-      setMessage(sanitizedMessage).setSpan(span).handler(ctx);
+      setMessage(sanitizedMessage).setSpan(span).setStack(sanitizedStack).handler(ctx);
   }
   // 执行自定义全局异常处理
   const ins: Exception = IOCContainer.getInsByClass(globalErrorHandler,
-    [sanitizedMessage, code, status, err.stack, span])
+    [sanitizedMessage, code, status, sanitizedStack, span])
   if (Helper.isFunction(ins?.handler)) {
     return ins.handler(ctx);
   }
 
   // 使用默认异常处理
-  return new Exception(sanitizedMessage, code, status, err.stack, span).handler(ctx);
+  return new Exception(sanitizedMessage, code, status, sanitizedStack, span).handler(ctx);
 }
 
 /**
- * Get HTTP status code from error object or context
+ * Get error information including status code and sanitized message
  * @param ctx KoattyContext - The Koatty context object
  * @param err Error | Exception - The error object
- * @returns number - HTTP status code
+ * @returns {Object} - Object containing:
+ *   - status: {number} HTTP status code
+ *   - message: {string} Sanitized error message
  * @description
- * Determines appropriate HTTP status code based on:
- * 1. Error object's status property if exists
- * 2. 500 for general Error instances
- * 3. 404 for unmatched routes
- * 4. Context status or 500 as fallback
+ * This function provides comprehensive error information by:
+ * 1. Determining appropriate HTTP status code based on:
+ *    - Explicit status from error object
+ *    - Context status
+ *    - Default 500 for unhandled errors
+ * 2. Extracting and sanitizing error message by:
+ *    - Using error.message if available
+ *    - Falling back to context.message
+ *    - Escaping double quotes to prevent JSON injection
+ * 3. Handling various error types:
+ *    - Built-in Error objects
+ *    - Custom Exception objects
+ *    - Context-specific errors
  */
-function getStatus<T extends Exception>(ctx: KoattyContext,
+function getErrorInfo<T extends Exception>(ctx: KoattyContext,
   err: Error | Exception | T) {
-  let status = 500; // 默认 500（服务器错误）
-  if ('status' in err && typeof err.status === 'number') {
-    status = err.status;
-  } else if (err instanceof Error) {
-    status = 500; // 确保 throw new Error() 不会误判为 404
-  } else if (ctx.status === 404 && !(ctx.response as any)._explicitStatus) {
-    status = 404; // 未匹配路由的默认 404
-  } else {
-    status = ctx.status || 500;
-  }
-  return status;
-}
+  // Status code determination
+  const status = 
+    ('status' in err && typeof err.status === 'number') ? err.status :
+    (ctx.status === 404 && !(ctx.response as any)._explicitStatus) ? 404 :
+    ctx.status || 500;
 
-/**
- * Get error message from error object or context
- * @param ctx KoattyContext instance
- * @param err Error or Exception object
- * @returns Processed error message with escaped double quotes
- * @template T Type extends Exception
- */
-function getMessage<T extends Exception>(ctx: KoattyContext,
-  err: Error | Exception | T) {
+  // Message extraction and sanitization
   let message = "";
   try {
-    // 优先从错误对象获取消息
-    if (err && typeof err.message === 'string') {
-      message = err.message;
-    } else if (ctx && typeof ctx.message === 'string') {
-      message = ctx.message;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    message = (err?.message ?? ctx?.message ?? "").toString();
+    // Escape double quotes to prevent JSON injection
+    message = message.replace(/"/g, '\\"');
   } catch (e) {
-    // 防止任何意外的访问错误
     message = "";
   }
-  return message.includes('"') ? message.replace(/"/g, '\\"') : message;
+
+  return { status, message };
 }
 
 
