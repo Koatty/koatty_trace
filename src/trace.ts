@@ -10,17 +10,18 @@
 import { IOCContainer } from "koatty_container";
 import { AppEvent, Koatty, KoattyContext, KoattyNext } from "koatty_core";
 import { Helper } from "koatty_lib";
-import { context, trace } from '@opentelemetry/api';
+import { context, Span, trace } from '@opentelemetry/api';
 import { defaultTextMapGetter, defaultTextMapSetter } from '@opentelemetry/api';
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
+import { DefaultLogger as logger } from "koatty_logger";
 import { extensionOptions } from "./catcher";
 import { HandlerFactory } from './handler/factory';
 import { ProtocolType } from './handler/base';
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
-import { initOpenTelemetry, startTracer } from "./opentelemetry";
 import { TraceOptions } from "./itrace";
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
-
+import { initSDK, startTracer } from "./opentelemetry/sdk";
 
 /** 
  * defaultOptions
@@ -28,14 +29,21 @@ import { W3CTraceContextPropagator } from "@opentelemetry/core";
 const defaultOptions = {
   RequestIdHeaderName: 'X-Request-Id',
   RequestIdName: "requestId",
-  IdFactory: uuidv4,
+  IdFactory: randomUUID,
   Timeout: 10000,
   Encoding: 'utf-8',
   EnableTrace: false,
   AsyncHooks: false,
   OtlpEndpoint: "http://localhost:4318/v1/traces",
+  OtlpHeaders: {},
+  OtlpTimeout: 10000,
+  SpanTimeout: 30000,
+  SamplingRate: 1.0, // 默认采样率100%
+  BatchMaxQueueSize: 2048,
+  BatchMaxExportSize: 512,
+  BatchDelayMillis: 5000,
+  BatchExportTimeout: 30000
 };
-
 
 /**
  * Middleware function for request tracing and monitoring in Koatty framework.
@@ -63,25 +71,24 @@ const defaultOptions = {
 export function Trace(options: TraceOptions, app: Koatty) {
   options = { ...defaultOptions, ...options };
 
-  // 
+  // Span超时跟踪 (使用Map替代WeakMap以提高性能)
+  const activeSpans = new Map<string, {span: Span, timer: NodeJS.Timeout}>();
+  
   let tracer: any;
   if (options.EnableTrace) {
     tracer = app.getMetaData("tracer")[0];
     if (!tracer) {
-      tracer = initOpenTelemetry(app, options)
+      tracer = initSDK(app, options)
       app.once(AppEvent.appStart, async () => {
         await startTracer(tracer, app, options);
       });
     }
   }
-  // global error handler class
   const geh: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
 
   return async (ctx: KoattyContext, next: KoattyNext) => {
-    // set ctx start time
     Helper.define(ctx, 'startTime', Date.now());
 
-    // server terminated
     let terminated = false;
     if (app?.server?.status === 503) {
       ctx.status = 503;
@@ -89,28 +96,23 @@ export function Trace(options: TraceOptions, app: Koatty) {
       ctx.body = 'Server is in the process of shutting down';
       terminated = true;
     }
-    // 
+    
     let requestId = '', headerRequestIdValue;
     switch (ctx.protocol) {
       case "grpc":
-        // originalPath
         Helper.define(ctx, 'originalPath', ctx.getMetaData("originalPath")[0]);
-        // http version
         Helper.define(ctx, 'version', "2.0");
         const request: any = ctx?.getMetaData("_body")[0] || {};
         headerRequestIdValue = ctx?.getMetaData(<string>options.RequestIdName) ||
           request[<string>options.RequestIdName] || '';
         break;
       default:
-        // originalPath
         Helper.define(ctx, 'originalPath', ctx.path);
-        // http version
         Helper.define(ctx, 'version', ctx.req.httpVersion);
         if (options.RequestIdHeaderName) {
           const requestIdHeaderName = options.RequestIdHeaderName.toLowerCase();
           headerRequestIdValue = ctx.headers ? ctx.headers[requestIdHeaderName] :
             ctx.query?.[options.RequestIdName] || '';
-
           break;
         }
     }
@@ -125,39 +127,55 @@ export function Trace(options: TraceOptions, app: Koatty) {
 
     requestId = requestId || getTraceId(options);
     Helper.define(ctx, 'requestId', requestId);
-    let span;
-    // opten trace
+    let span: Span;
+
     if (options.EnableTrace) {
+      // 采样率检查
+      const shouldSample = Math.random() < (options.SamplingRate ?? 1.0);
       const serviceName = app.name || "unknownKoattyProject";
-      // 使用标准W3C Trace Context传播
       const propagator = new W3CTraceContextPropagator();
       const carrier: { [key: string]: string } = {};
+      let incomingContext;
 
-      // 从请求头中提取上下文
-      const incomingContext = propagator.extract(
-        context.active(),
-        ctx.headers,
-        defaultTextMapGetter
-      );
+      if (shouldSample) {
+        incomingContext = propagator.extract(
+          context.active(),
+          ctx.headers,
+          defaultTextMapGetter
+        );
+        span = tracer.startSpan(serviceName, {}, incomingContext);
+      } else {
+        span = undefined;
+      }
+      
+      // 设置Span超时定时器
+      if (options.SpanTimeout && span) {
+        const traceId = span.spanContext().traceId;
+        const timer = setTimeout(() => {
+          const entry = activeSpans.get(traceId);
+          if (entry) {
+            logger.warn(`Span timeout after ${options.SpanTimeout}ms`, {
+              requestId,
+              traceId
+            });
+            entry.span.end();
+            activeSpans.delete(traceId);
+          }
+        }, options.SpanTimeout);
+        activeSpans.set(traceId, {span, timer});
+      }
 
-      // 创建新Span并关联到上下文
-      span = tracer.startSpan(serviceName, {}, incomingContext);
-
-      // 注入响应头
       context.with(trace.setSpan(incomingContext, span), () => {
         propagator.inject(
           context.active(),
           carrier,
           defaultTextMapSetter
         );
-
-        // 设置标准headers到响应
         Object.entries(carrier).forEach(([key, value]) => {
           ctx.set(key, value);
         });
       });
 
-      // 添加标准属性
       span.setAttribute("http.request_id", requestId);
       span.setAttribute("http.method", ctx.method);
       span.setAttribute("http.route", ctx.path);
@@ -173,12 +191,12 @@ export function Trace(options: TraceOptions, app: Koatty) {
       span,
       globalErrorHandler: geh,
     }
-    // open async hooks
-    if (options.AsyncHooks) {
+
+    if (options.AsyncHooks && (ctx.req || ctx.res)) {
+      const asyncResource = createAsyncResource();
       return asyncLocalStorage.run(requestId, () => {
-        const asyncResource = createAsyncResource();
-        wrapEmitter(ctx.req, asyncResource);
-        wrapEmitter(ctx.res, asyncResource);
+        if (ctx.req) wrapEmitter(ctx.req, asyncResource);
+        if (ctx.res) wrapEmitter(ctx.res, asyncResource);
         return respWarper(ctx, next, options, ext);
       });
     }
@@ -186,27 +204,25 @@ export function Trace(options: TraceOptions, app: Koatty) {
       return await respWarper(ctx, next, options, ext);
     } finally {
       if (span) {
-        span.end(); // 确保Span正确结束
+        const traceId = span.spanContext().traceId;
+        const entry = activeSpans.get(traceId);
+        if (entry) {
+          clearTimeout(entry.timer);
+          activeSpans.delete(traceId);
+        }
+        span.end();
       }
     }
   }
 }
 
-
-/**
- * getTraceId
- *
- * @export
- * @returns {*}  
- */
 function getTraceId(options?: TraceOptions) {
   let rid;
   if (Helper.isFunction(options?.IdFactory)) {
     rid = options?.IdFactory();
   }
-  return rid || uuidv4();
+  return rid || randomUUID();
 }
-
 /**
  * Wrapper function for handling different protocol responses with trace functionality.
  * Supports multiple protocols (gRPC/WS/WSS/HTTP/HTTPS/GraphQL) and sets request ID in metadata.
@@ -219,19 +235,14 @@ function getTraceId(options?: TraceOptions) {
  */
 async function respWarper(ctx: KoattyContext, next: KoattyNext,
   options: TraceOptions, ext: extensionOptions) {
-  // metadata
   if (options.RequestIdName && ctx.setMetaData) ctx?.setMetaData(options.RequestIdName, ctx.requestId);
-  // protocol handler
-  // 支持多协议处理（grpc/ws/wss/http/https/graphql）
+  // protocol handler （grpc/ws/wss/http/https/graphql）
   // allow bypassing koa
   const protocol = (ctx?.protocol || "http").toLowerCase();
-  if (protocol === "grpc" ||
-    protocol === "ws" ||
-    protocol === "wss") {
+  if (protocol === "grpc" || protocol === "ws" || protocol === "wss") {
     ctx.respond = false;
   }
 
-  // response header
   if (options.RequestIdHeaderName) {
     ctx.set(options.RequestIdHeaderName, ctx.requestId);
   }

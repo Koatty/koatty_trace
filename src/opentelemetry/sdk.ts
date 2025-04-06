@@ -1,0 +1,97 @@
+/**
+ * 
+ * @Description: 
+ * @Author: richen
+ * @Date: 2025-04-04 12:21:48
+ * @LastEditTime: 2025-04-04 19:11:05
+ * @License: BSD (3-Clause)
+ * @Copyright (c): <richenlin(at)gmail.com>
+ */
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { diag, DiagLogLevel, trace } from '@opentelemetry/api';
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { Koatty } from 'koatty_core';
+import { TraceOptions } from '../itrace';
+import { DefaultLogger as logger } from "koatty_logger";
+import { Logger } from '../logger';
+import { RetryOTLPTraceExporter } from './exporter';
+import { createResourceAttributes } from './resource';
+
+/**
+ * Initialize OpenTelemetry SDK
+ */
+export function initSDK(app: Koatty, options: TraceOptions) {
+  const traceExporter = new RetryOTLPTraceExporter({
+    url: options.OtlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    headers: options.OtlpHeaders || {},
+    timeoutMillis: options.OtlpTimeout || 10000,
+    maxRetries: 3,
+    retryDelay: 1000
+  });
+
+  const batchOptions = {
+    maxQueueSize: options.BatchMaxQueueSize,
+    maxExportBatchSize: options.BatchMaxExportSize,
+    scheduledDelayMillis: options.BatchDelayMillis,
+    exportTimeoutMillis: options.BatchExportTimeout
+  };
+
+  // Configure logging
+  const logLevel = logger.getLevel();
+  const diagLogLevel = Object.values(DiagLogLevel).find(
+    (level) => level.toString() === logLevel.toString()
+  ) || DiagLogLevel.INFO;
+  diag.setLogger(new Logger(), diagLogLevel as DiagLogLevel);
+
+  return new NodeSDK({
+    resource: createResourceAttributes(app, options),
+    traceExporter,
+    spanProcessor: new BatchSpanProcessor(traceExporter, batchOptions),
+    instrumentations: options.OtlpInstrumentations || [
+      getNodeAutoInstrumentations({
+        '@opentelemetry/instrumentation-grpc': {
+          enabled: true,
+        },
+        '@opentelemetry/instrumentation-koa': {
+          enabled: true,
+        }
+      })
+    ]
+  });
+}
+
+/**
+ * Start OpenTelemetry tracer
+ */
+export async function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptions) {
+  const shutdownHandler = async () => {
+    try {
+      await sdk.shutdown();
+      logger.info('OpenTelemetry SDK shut down successfully');
+    } catch (error) {
+      logger.error('Error shutting down OpenTelemetry SDK', error);
+    } finally {
+      app.off("appStop", shutdownHandler);
+    }
+  };
+
+  try {
+    await sdk.start();
+    logger.info('OpenTelemetry SDK started successfully');
+  } catch (err) {
+    logger.error(`OpenTelemetry SDK initialization failed: ${err.message}`, {
+      stack: err.stack,
+      code: err.code,
+      config: {
+        endpoint: options.OtlpEndpoint,
+        serviceName: app.name
+      }
+    });
+    trace.setGlobalTracerProvider(new BasicTracerProvider());
+    return;
+  } finally {
+    app.on("appStop", shutdownHandler);
+  }
+}

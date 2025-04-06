@@ -37,4 +37,28 @@ export interface TraceOptions {
    * OTLP exporter timeout in milliseconds
    */
   OtlpTimeout?: number;
+  /**
+   * Maximum lifetime for a span in milliseconds (default: 30000)
+   */
+  SpanTimeout?: number;
+  /**
+   * Sampling rate for spans (0.0 - 1.0)
+   */
+  SamplingRate?: number;
+  /**
+   * Maximum number of spans in batch queue (default: 2048)
+   */
+  BatchMaxQueueSize?: number;
+  /**
+   * Maximum number of spans to export in one batch (default: 512)
+   */
+  BatchMaxExportSize?: number;
+  /**
+   * Delay in milliseconds between batch exports (default: 5000)
+   */
+  BatchDelayMillis?: number;
+  /**
+   * Timeout in milliseconds for batch export (default: 30000)
+   */
+  BatchExportTimeout?: number;
 }
