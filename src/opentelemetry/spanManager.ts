@@ -3,7 +3,7 @@ import { defaultTextMapSetter } from '@opentelemetry/api';
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as logger } from "koatty_logger";
-import { TraceOptions } from "./itrace";
+import { TraceOptions } from "../itrace";
 
 /**
  * Manages span lifecycle and operations

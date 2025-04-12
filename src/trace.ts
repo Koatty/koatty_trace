@@ -11,7 +11,7 @@ import { IOCContainer } from "koatty_container";
 import { AppEvent, Koatty, KoattyContext, KoattyNext } from "koatty_core";
 import { Helper } from "koatty_lib";
 import { Span } from '@opentelemetry/api';
-import { SpanManager } from './spanManager';
+import { SpanManager } from './opentelemetry/spanManager';
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { DefaultLogger as logger } from "koatty_logger";
