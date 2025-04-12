@@ -5,11 +5,12 @@
  * @License: BSD (3-Clause)
  * @Copyright (c): <richenlin(at)gmail.com>
  */
-import { initOpenTelemetry, startTracer } from '../src/opentelemetry';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { diag, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { initSDK, startTracer } from '../src/opentelemetry/sdk';
+import { Koatty } from 'koatty_core';
 
 jest.mock('@opentelemetry/sdk-node');
 jest.mock('@opentelemetry/exporter-trace-otlp-http');
@@ -39,7 +40,7 @@ describe('opentelemetry.ts', () => {
     on: jest.fn(),
     off: jest.fn(),
     getMetaData: jest.fn()
-  };
+  } as unknown as Koatty;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,11 +48,11 @@ describe('opentelemetry.ts', () => {
 
   it('should initialize OpenTelemetry SDK with default options', () => {
     const options = {
-      OtlpEndpoint: 'http://localhost:4318/v1/traces',
-      EnableTrace: true
+      otlpEndpoint: 'http://localhost:4318/v1/traces',
+      enableTrace: true
     };
 
-    const sdk = initOpenTelemetry(mockApp, options);
+    const sdk = initSDK(mockApp, options);
     
     expect(NodeSDK).toHaveBeenCalled();
     expect(OTLPTraceExporter).toHaveBeenCalledWith({
@@ -64,14 +65,14 @@ describe('opentelemetry.ts', () => {
 
   it('should initialize OpenTelemetry SDK with custom options', () => {
     const options = {
-      OtlpEndpoint: 'http://custom-endpoint:4318/v1/traces',
-      OtlpHeaders: { 'x-api-key': 'test-key' },
-      OtlpTimeout: 5000,
-      OtlpResourceAttributes: { 'custom.attribute': 'value' },
-      EnableTrace: true
+      otlpEndpoint: 'http://custom-endpoint:4318/v1/traces',
+      otlpHeaders: { 'x-api-key': 'test-key' },
+      otlpTimeout: 5000,
+      otlpResourceAttributes: { 'custom.attribute': 'value' },
+      enableTrace: true
     };
 
-    const sdk = initOpenTelemetry(mockApp, options);
+    const sdk = initSDK(mockApp, options);
     
     expect(NodeSDK).toHaveBeenCalled();
     expect(OTLPTraceExporter).toHaveBeenCalledWith({
@@ -84,10 +85,10 @@ describe('opentelemetry.ts', () => {
 
   it('should throw error when OTLP endpoint is missing', () => {
     const options = {
-      EnableTrace: true
+      enableTrace: true
     };
 
-    expect(() => initOpenTelemetry(mockApp, options)).toThrow('OTLP endpoint is required');
+    expect(() => initSDK(mockApp, options)).toThrow('OTLP endpoint is required');
   });
 
   it('should start tracer successfully', async () => {
@@ -96,7 +97,7 @@ describe('opentelemetry.ts', () => {
       shutdown: jest.fn().mockResolvedValue(undefined)
     };
     const options = {
-      EnableTrace: true
+      enableTrace: true
     };
 
     await startTracer(mockSdk as unknown as NodeSDK, mockApp, options);
@@ -111,7 +112,7 @@ describe('opentelemetry.ts', () => {
       shutdown: jest.fn().mockResolvedValue(undefined)
     };
     const options = {
-      EnableTrace: true
+      enableTrace: true
     };
 
     await startTracer(mockSdk as unknown as NodeSDK, mockApp, options);
@@ -126,7 +127,7 @@ describe('opentelemetry.ts', () => {
       shutdown: jest.fn().mockResolvedValue(undefined)
     };
     const options = {
-      EnableTrace: true
+      enableTrace: true
     };
 
     await startTracer(mockSdk as unknown as NodeSDK, mockApp, options);

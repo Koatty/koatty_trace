@@ -7,7 +7,7 @@
  */
 import Koa from 'koa';
 import { createServer, Server } from 'http';
-import { Trace } from '../src/trace';
+import { Trace } from '../src/trace/trace';
 import { Koatty } from 'koatty_core';
 
 describe('trace.ts', () => {
@@ -32,8 +32,8 @@ describe('trace.ts', () => {
 
   it('should generate and propagate request ID', async () => {
     const options = {
-      RequestIdHeaderName: 'X-Request-Id',
-      RequestIdName: 'requestId'
+      requestIdHeaderName: 'X-Request-Id',
+      requestIdName: 'requestId'
     };
     
     const middleware = await Trace(options, mockApp);
@@ -67,8 +67,8 @@ describe('trace.ts', () => {
     mockApp.getMetaData = jest.fn().mockReturnValue([mockTracer]);
     
     const options = {
-      EnableTrace: true,
-      RequestIdHeaderName: 'X-Request-Id'
+      enableTrace: true,
+      requestIdHeaderName: 'X-Request-Id'
     };
     
     const middleware = await Trace(options, mockApp);
@@ -105,7 +105,7 @@ describe('trace.ts', () => {
 
   it('should handle gRPC protocol requests', async () => {
     const options = {
-      RequestIdName: 'requestId'
+      requestIdName: 'requestId'
     };
     
     const ctx = {
@@ -172,7 +172,7 @@ describe('trace.ts', () => {
 
   it('should handle WebSocket protocol requests', async () => {
     const options = {
-      RequestIdHeaderName: 'X-Request-Id'
+      requestIdHeaderName: 'X-Request-Id'
     };
     
     const ctx = {
@@ -278,7 +278,7 @@ describe('trace.ts', () => {
 
     const next = jest.fn();
     
-    const middleware = await Trace({}, terminatedApp);
+    const middleware = await Trace({}, terminatedApp as any);
     await middleware(ctx, next);
     
     expect(ctx.status).toBe(503);
