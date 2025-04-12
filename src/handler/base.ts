@@ -8,7 +8,7 @@
  * @Copyright (c): <richenlin(at)gmail.com>
  */
 import { KoattyContext, KoattyNext } from "koatty_core";
-import { extensionOptions, catcher } from "../catcher";
+import { extensionOptions, catcher } from "../trace/catcher";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from '@opentelemetry/api';
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";

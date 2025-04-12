@@ -15,7 +15,8 @@ import { Exception, StatusCodeConvert } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from '@opentelemetry/api';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { catcher, extensionOptions } from '../catcher';
+import { catcher } from '../trace/catcher';
+import { extensionOptions } from '../trace/itrace';
 
 
 /**

@@ -9,4 +9,4 @@
  * @Copyright (c) - <richenlin(at)gmail.com>
  */
 
-export * from "./trace";
+export * from "./trace/trace";

@@ -40,6 +40,6 @@ export function createResourceAttributes(app: Koatty, options: any) {
       [ATTR_TELEMETRY_SDK_VERSION]: process.env.OTEL_SDK_VERSION || '1.0.0',
       'process.pid': process.pid
     },
-    options.OtlpResourceAttributes || {}
+    options.otlpResourceAttributes || {}
   ));
 }

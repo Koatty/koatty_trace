@@ -14,8 +14,9 @@ import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from "@opentelemetry/api";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { Stream } from 'stream';
-import { catcher, extensionOptions } from "../catcher";
+import { catcher } from "../trace/catcher";
 import { BaseHandler, Handler } from "./base";
+import { extensionOptions } from "../trace/itrace";
 const zlib = require('zlib');
 const { brotliCompressSync } = require('brotli-wasm');
 
@@ -106,7 +107,7 @@ export class HttpHandler extends BaseHandler implements Handler {
  * @param {KoattyContext} ctx
  * @returns {*}  
  */
-function respond(ctx: KoattyContext, ext?: extensionOptions) {
+export function respond(ctx: KoattyContext, ext?: extensionOptions) {
   let compressStream: NodeJS.ReadWriteStream | null = null;
   let compressSync: ((data: any) => Buffer) | null = null;
   // Check if client accepts compression

@@ -13,7 +13,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { diag, DiagLogLevel, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { Koatty } from 'koatty_core';
-import { TraceOptions } from '../itrace';
+import { TraceOptions } from '../trace/itrace';
 import { DefaultLogger as logger } from "koatty_logger";
 import { Logger } from './logger';
 import { RetryOTLPTraceExporter } from './exporter';
@@ -24,18 +24,18 @@ import { createResourceAttributes } from './resource';
  */
 export function initSDK(app: Koatty, options: TraceOptions) {
   const traceExporter = new RetryOTLPTraceExporter({
-    url: options.OtlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
-    headers: options.OtlpHeaders || {},
-    timeoutMillis: options.OtlpTimeout || 10000,
+    url: options.otlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    headers: options.otlpHeaders || {},
+    timeoutMillis: options.otlpTimeout || 10000,
     maxRetries: 3,
     retryDelay: 1000
   });
 
   const batchOptions = {
-    maxQueueSize: options.BatchMaxQueueSize,
-    maxExportBatchSize: options.BatchMaxExportSize,
-    scheduledDelayMillis: options.BatchDelayMillis,
-    exportTimeoutMillis: options.BatchExportTimeout
+    maxQueueSize: options.batchMaxQueueSize,
+    maxExportBatchSize: options.batchMaxExportSize,
+    scheduledDelayMillis: options.batchDelayMillis,
+    exportTimeoutMillis: options.batchExportTimeout
   };
 
   // Configure logging
@@ -49,7 +49,7 @@ export function initSDK(app: Koatty, options: TraceOptions) {
     resource: createResourceAttributes(app, options),
     traceExporter,
     spanProcessor: new BatchSpanProcessor(traceExporter, batchOptions),
-    instrumentations: options.OtlpInstrumentations || [
+    instrumentations: options.otlpInstrumentations || [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-grpc': {
           enabled: true,
@@ -85,7 +85,7 @@ export async function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptio
       stack: err.stack,
       code: err.code,
       config: {
-        endpoint: options.OtlpEndpoint,
+        endpoint: options.otlpEndpoint,
         serviceName: app.name
       }
     });

@@ -3,7 +3,7 @@ import { defaultTextMapSetter } from '@opentelemetry/api';
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import { KoattyContext } from "koatty_core";
 import { DefaultLogger as logger } from "koatty_logger";
-import { TraceOptions } from "../itrace";
+import { TraceOptions } from "../trace/itrace";
 
 /**
  * Manages span lifecycle and operations
@@ -14,7 +14,7 @@ export class SpanManager {
   constructor(private options: TraceOptions) {}
 
   createSpan(tracer: any, ctx: KoattyContext, serviceName: string): Span | undefined {
-    const shouldSample = Math.random() < (this.options.SamplingRate ?? 1.0);
+    const shouldSample = Math.random() < (this.options.samplingRate ?? 1.0);
     if (!shouldSample) return undefined;
 
     const propagator = new W3CTraceContextPropagator();
@@ -27,19 +27,19 @@ export class SpanManager {
   }
 
   private setupSpanTimeout(span: Span) {
-    if (!this.options.SpanTimeout) return;
+    if (!this.options.spanTimeout) return;
 
     const traceId = span.spanContext().traceId;
     const timer = setTimeout(() => {
       const entry = this.activeSpans.get(traceId);
       if (entry) {
-        logger.warn(`Span timeout after ${this.options.SpanTimeout}ms`, {
+        logger.warn(`Span timeout after ${this.options.spanTimeout}ms`, {
           traceId
         });
         entry.span.end();
         this.activeSpans.delete(traceId);
       }
-    }, this.options.SpanTimeout);
+    }, this.options.spanTimeout);
 
     this.activeSpans.set(traceId, { span, timer });
   }

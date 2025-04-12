@@ -13,27 +13,7 @@ import { KoattyContext } from "koatty_core";
 import { Exception, isException } from "koatty_exception";
 import { Helper } from "koatty_lib";
 import { Span } from "@opentelemetry/api";
-
-/**
- * @description: extensionOptions
- * @return {*}
- */
-export interface extensionOptions {
-  /** 是否开启调试模式 */
-  debug?: boolean,
-  /** 超时时间，单位毫秒 */
-  timeout?: number,
-  /** 编码格式 */
-  encoding?: string,
-  /** 是否终止请求 */
-  terminated?: boolean,
-  /** OpenTelemetry Span对象，用于链路追踪 */
-  span?: Span,
-  /** 自定义全局异常处理类 */
-  globalErrorHandler?: any,
-  /** 压缩方式 none|gzip|brotli */
-  compression?: string,
-}
+import { extensionOptions } from "./itrace";
 
 /**
  * Global error catcher for handling exceptions in Koatty framework.
@@ -56,7 +36,7 @@ export function catcher<T extends Exception>(
   err: Error | Exception | T,
   span?: Span,
   globalErrorHandler?: T,
-  _ext?: extensionOptions
+  ext?: extensionOptions
 ) {
   const { message: sanitizedMessage, status } = getErrorInfo(ctx, err);
   const code = (<T>err).code || 1;

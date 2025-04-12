@@ -13,8 +13,9 @@ import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from "@opentelemetry/api";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { inspect } from "util";
-import { catcher, extensionOptions } from "../catcher";
+import { catcher } from "../trace/catcher";
 import { BaseHandler, Handler } from './base';
+import { extensionOptions } from "../trace/itrace";
 
 export class WsHandler extends BaseHandler implements Handler {
   private static instance: WsHandler;
