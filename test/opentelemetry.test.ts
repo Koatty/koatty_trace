@@ -58,7 +58,9 @@ describe('opentelemetry.ts', () => {
     expect(OTLPTraceExporter).toHaveBeenCalledWith({
       url: 'http://localhost:4318/v1/traces',
       headers: {},
-      timeoutMillis: 10000
+      timeoutMillis: 10000,
+      maxRetries: 3,
+      retryDelay: 1000
     });
     expect(sdk).toBeInstanceOf(NodeSDK);
   });
@@ -78,7 +80,9 @@ describe('opentelemetry.ts', () => {
     expect(OTLPTraceExporter).toHaveBeenCalledWith({
       url: 'http://custom-endpoint:4318/v1/traces',
       headers: { 'x-api-key': 'test-key' },
-      timeoutMillis: 5000
+      timeoutMillis: 5000,
+      maxRetries: 3,
+      retryDelay: 1000
     });
     expect(sdk).toBeInstanceOf(NodeSDK);
   });
@@ -133,7 +137,7 @@ describe('opentelemetry.ts', () => {
     await startTracer(mockSdk as unknown as NodeSDK, mockApp, options);
     
     // Get the shutdown handler
-    const shutdownHandler = mockApp.on.mock.calls[0][1];
+    const shutdownHandler = (<any>mockApp.on).mock.calls[0][1];
     await shutdownHandler();
     
     expect(mockSdk.shutdown).toHaveBeenCalled();

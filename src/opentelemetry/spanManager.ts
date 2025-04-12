@@ -37,8 +37,8 @@ export class SpanManager {
     return this.span;
   }
 
-  private setupSpanTimeout() {
-    if (!this.options.spanTimeout) return;
+  setupSpanTimeout() {
+    if (!this.options.spanTimeout || !this.span) return;
 
     const traceId = this.span.spanContext().traceId;
     const timer = setTimeout(() => {
@@ -55,9 +55,10 @@ export class SpanManager {
     this.activeSpans.set(traceId, { span: this.span, timer });
   }
 
-  private injectContext(ctx: KoattyContext) {
+  injectContext(ctx: KoattyContext) {
+    if (!this.span) return;
+    
     const carrier: { [key: string]: string } = {};
-
     context.with(trace.setSpan(context.active(), this.span), () => {
       this.propagator.inject(context.active(), carrier, defaultTextMapSetter);
       Object.entries(carrier).forEach(([key, value]) => {
@@ -66,7 +67,9 @@ export class SpanManager {
     });
   }
 
-  private setBasicAttributes(ctx: KoattyContext) {
+  setBasicAttributes(ctx: KoattyContext) {
+    if (!this.span) return;
+    
     this.span.setAttribute("http.request_id", ctx.requestId);
     this.span.setAttribute("http.method", ctx.method);
     this.span.setAttribute("http.route", ctx.path);
@@ -80,14 +83,18 @@ export class SpanManager {
   }
 
   setSpanAttributes(attributes: SpanAttributes) {
+    if (!this.span) return;
     this.span.setAttributes(attributes);
+    return this;
   }
 
   addSpanEvent(name: string, attributes?: SpanAttributes) {
+    if (!this.span) return;
     this.span.addEvent(name, attributes);
   }
 
   endSpan() {
+    if (!this.span) return;
     const traceId = this.span.spanContext().traceId;
     const entry = this.activeSpans.get(traceId);
     if (entry) {

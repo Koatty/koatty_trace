@@ -23,8 +23,13 @@ import { createResourceAttributes } from './resource';
  * Initialize OpenTelemetry SDK
  */
 export function initSDK(app: Koatty, options: TraceOptions) {
+  const endpoint = options.otlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  if (!endpoint) {
+    throw new Error('OTLP endpoint is required');
+  }
+
   const traceExporter = new RetryOTLPTraceExporter({
-    url: options.otlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    url: endpoint,
     headers: options.otlpHeaders || {},
     timeoutMillis: options.otlpTimeout || 10000,
     maxRetries: 3,

@@ -128,34 +128,55 @@ const createMockContext = (protocol = 'http'): KoattyContext => ({
 // Mock Span
 const mockSpan: Span = {
   end: jest.fn(),
-  setAttributes: jest.fn()
+  setAttributes: jest.fn(),
+  setAttribute: jest.fn(),
+  addEvent: jest.fn(),
+  setStatus: jest.fn(),
+  updateName: jest.fn(),
+  isRecording: jest.fn().mockReturnValue(true),
+  recordException: jest.fn(),
+  spanContext: jest.fn().mockReturnValue({
+    traceId: 'mock-trace-id',
+    spanId: 'mock-span-id',
+    traceFlags: 1
+  })
 } as unknown as Span;
 
 // Complete mock for SpanManager with tracer
-const mockSpanManager: SpanManager = {
-  createSpan: jest.fn().mockImplementation((serviceName: string) => {
+const mockSpanManager: any = {
+  createSpan: jest.fn((tracer: any, ctx: any, serviceName: string) => {
     const span = {
       ...mockSpan,
       setAttribute: jest.fn(),
       setAttributes: jest.fn(),
       addEvent: jest.fn(),
       setStatus: jest.fn(),
-      updateName: jest.fn()
+      updateName: jest.fn(),
+      spanContext: jest.fn().mockReturnValue({
+        traceId: `mock-trace-id-${Math.random().toString(36).substring(7)}`,
+        spanId: 'mock-span-id',
+        traceFlags: 1
+      })
     };
+    // Store the created span for later verification
+    mockSpanManager.getSpan = jest.fn().mockReturnValue(span);
     return span;
   }),
-  endSpan: jest.fn(),
-  startSpan: jest.fn().mockImplementation((serviceName: string) => {
-    const span = {
-      ...mockSpan,
-      setAttribute: jest.fn(),
-      setAttributes: jest.fn(),
-      addEvent: jest.fn(),
-      setStatus: jest.fn(),
-      updateName: jest.fn()
-    };
-    return span;
+  endSpan: jest.fn().mockImplementation(() => {
+    const span = mockSpanManager.getSpan();
+    if (span) {
+      span.end();
+    }
   }),
+  getSpan: jest.fn().mockReturnValue(mockSpan),
+  setupSpanTimeout: jest.fn().mockImplementation((span: any) => {
+    return setTimeout(() => {
+      span.end();
+    }, 100);
+  }),
+  injectContext: jest.fn(),
+  setBasicAttributes: jest.fn(),
+  setSpanAttributes: jest.fn(),
   tracer: {
     startSpan: jest.fn().mockImplementation((name: string) => {
       return {
@@ -170,7 +191,7 @@ const mockSpanManager: SpanManager = {
         isRecording: jest.fn().mockReturnValue(true),
         recordException: jest.fn(),
         spanContext: jest.fn().mockReturnValue({
-          traceId: 'mock-trace-id',
+          traceId: `mock-trace-id-${Math.random().toString(36).substring(7)}`,
           spanId: 'mock-span-id',
           traceFlags: 1
         })
@@ -182,11 +203,14 @@ const mockSpanManager: SpanManager = {
     getActiveSpan: jest.fn(),
     startActiveSpan: jest.fn()
   },
-  setupSpanTimeout: jest.fn(),
-  injectContext: jest.fn(),
-  setBasicAttributes: jest.fn(),
   getTracer: jest.fn().mockReturnValue({
     startSpan: jest.fn().mockReturnValue(mockSpan)
+  }),
+  addSpanEvent: jest.fn().mockImplementation((name: string, attributes?: Record<string, any>) => {
+    const span = mockSpanManager.getSpan();
+    if (span) {
+      span.addEvent(name, attributes);
+    }
   })
 } as unknown as SpanManager;
 
@@ -246,13 +270,86 @@ describe('Trace Middleware', () => {
     const ctx = createMockContext();
     const middleware = Trace({ 
       enableTrace: true,
+      samplingRate: 1.0,
+      spanTimeout: 5000
     }, mockApp);
-    await middleware(ctx, jest.fn());
+    
+    // Create a mock next function that will end the span
+    const next = jest.fn().mockImplementation(() => {
+      mockSpanManager.endSpan();
+    });
+    
+    await middleware(ctx, next);
+    
     expect(mockSpanManager.createSpan).toHaveBeenCalledWith(
       mockTracer,
       expect.anything(),
       expect.any(String)
     );
+    expect(next).toHaveBeenCalled();
+    expect(mockSpan.end).toHaveBeenCalled();
+  });
+
+  test('should handle span timeout', (done) => {
+    const ctx = createMockContext();
+    const middleware = Trace({
+      enableTrace: true,
+      spanTimeout: 100
+    }, mockApp);
+    
+    middleware(ctx, jest.fn());
+    
+    setTimeout(() => {
+      expect(mockSpan.end).toHaveBeenCalled();
+      done();
+    }, 200);
+  });
+
+  test('should manage multiple active spans', async () => {
+    jest.clearAllMocks();
+    
+    const ctx1 = createMockContext();
+    const ctx2 = createMockContext();
+    const middleware = Trace({
+      enableTrace: true,
+      samplingRate: 1.0
+    }, mockApp);
+    
+    // Create separate spans for each context with independent mocks
+    const span1 = { 
+      ...mockSpan,
+      end: jest.fn()
+    };
+    const span2 = { 
+      ...mockSpan,
+      end: jest.fn() 
+    };
+    
+    // Mock span creation and store spans for verification
+    const spans: Span[] = [];
+    mockSpanManager.createSpan
+      .mockImplementation((tracer, ctx, serviceName) => {
+        const span = ctx === ctx1 ? span1 : span2;
+        spans.push(span);
+        return span;
+      });
+    
+    // Mock span ending
+    mockSpanManager.endSpan.mockImplementation(() => {
+      const span = spans.pop();
+      if (span) {
+        span.end();
+      }
+    });
+    
+    await Promise.all([
+      middleware(ctx1, () => mockSpanManager.endSpan()),
+      middleware(ctx2, () => mockSpanManager.endSpan())
+    ]);
+    
+    // Verify both spans were properly ended
+    expect(span1.end).toHaveBeenCalledTimes(1);
+    expect(span2.end).toHaveBeenCalledTimes(1);
   });
 
   test('should enable async hooks when configured', async () => {
