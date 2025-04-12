@@ -16,6 +16,7 @@ import { inspect } from "util";
 import { catcher } from "../trace/catcher";
 import { BaseHandler, Handler } from './base';
 import { extensionOptions } from "../trace/itrace";
+import { Helper } from "koatty_lib";
 
 export class WsHandler extends BaseHandler implements Handler {
   private static instance: WsHandler;
@@ -66,7 +67,11 @@ export class WsHandler extends BaseHandler implements Handler {
       if (ctx.status >= 400) {
         throw new Exception(ctx.message, 1, ctx.status);
       }
-      ctx?.websocket?.send(inspect(ctx.body || ''), null);
+      
+      // Only send if connection is open and body exists
+      if (ctx?.websocket?.readyState === 1 && !Helper.isTrueEmpty(ctx.body)) {
+        ctx.websocket.send(inspect(ctx.body), null);
+      }
       return null;
     } catch (err: any) {
       return this.handleError(err, ctx, ext);
