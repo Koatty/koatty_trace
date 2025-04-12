@@ -93,11 +93,9 @@ export function Trace(options: TraceOptions, app: Koatty) {
     Helper.define(ctx, 'requestId', requestId);
 
     // Create span if tracing is enabled
-    let span: Span | undefined;
     if (options.enableTrace && tracer) {
       const serviceName = app.name || "unknownKoattyProject";
-      span = spanManager.createSpan(tracer, ctx, serviceName);
-      if (ctx.setMetaData) ctx.setMetaData("tracer_span", span);
+      spanManager.createSpan(tracer, ctx, serviceName);
     }
 
     // Record topology if enabled

@@ -11,14 +11,16 @@ import { TraceOptions } from "../trace/itrace";
 export class SpanManager {
   private activeSpans = new Map<string, { span: Span, timer: NodeJS.Timeout }>();
   private span: Span | undefined;
+  private readonly propagator: W3CTraceContextPropagator;
 
-  constructor(private options: TraceOptions) {}
+  constructor(private options: TraceOptions) {
+    this.propagator = new W3CTraceContextPropagator();
+  }
 
   createSpan(tracer: Tracer, ctx: KoattyContext, serviceName: string): Span | undefined {
     const shouldSample = Math.random() < (this.options.samplingRate ?? 1.0);
     if (!shouldSample) return undefined;
 
-    const propagator = new W3CTraceContextPropagator();
     if (!tracer.startSpan) {
       logger.error('Tracer does not have startSpan method');
       return undefined;
@@ -54,11 +56,10 @@ export class SpanManager {
   }
 
   private injectContext(ctx: KoattyContext) {
-    const propagator = new W3CTraceContextPropagator();
     const carrier: { [key: string]: string } = {};
 
     context.with(trace.setSpan(context.active(), this.span), () => {
-      propagator.inject(context.active(), carrier, defaultTextMapSetter);
+      this.propagator.inject(context.active(), carrier, defaultTextMapSetter);
       Object.entries(carrier).forEach(([key, value]) => {
         ctx.set(key, value);
       });

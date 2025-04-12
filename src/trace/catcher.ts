@@ -21,9 +21,7 @@ import { SpanManager } from '../opentelemetry/spanManager';
  * 
  * @param ctx - Koatty context object
  * @param err - Error or Exception object to be handled
- * @param span - Optional span object for tracing
- * @param globalErrorHandler - Optional custom global error handler
- * @param _ext - Optional extension options
+ * @param ext - Optional extension options
  * @returns Result of error handling through Exception handler
  * 
  * @description
