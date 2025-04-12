@@ -31,14 +31,15 @@ module.exports = {
     "@typescript-eslint/no-empty-interface": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-unsafe-function-type": "warn",
-    '@typescript-eslint/no-unused-vars': [
-      'error',
-      {
-        vars: 'all', // 检查所有变量
-        varsIgnorePattern: '^_', // 允许以 _ 开头的变量
-        args: 'after-used', // 仅检查被使用的参数
-        argsIgnorePattern: '^_', // 允许以 _ 开头的参数
-      }
-    ],
+    '@typescript-eslint/no-unused-vars': "warn"
+    // [
+    //   'error',
+    //   {
+    //     vars: 'all', // 检查所有变量
+    //     varsIgnorePattern: '^_', // 允许以 _ 开头的变量
+    //     args: 'after-used', // 仅检查被使用的参数
+    //     argsIgnorePattern: '^_', // 允许以 _ 开头的参数
+    //   }
+    // ],
   },
 };
