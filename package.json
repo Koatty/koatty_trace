@@ -88,7 +88,6 @@
     "koa": "^2.16.0",
     "reflect-metadata": "^0.x.x",
     "rollup": "^4.x.x",
-    "rollup-plugin-cleanup": "^3.x.x",
     "rollup-plugin-delete": "^2.x.x",
     "rollup-plugin-typescript2": "^0.x.x",
     "sinon": "^19.0.4",
