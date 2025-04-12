@@ -15,7 +15,7 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { Koatty } from 'koatty_core';
 import { TraceOptions } from '../itrace';
 import { DefaultLogger as logger } from "koatty_logger";
-import { Logger } from '../logger';
+import { Logger } from './logger';
 import { RetryOTLPTraceExporter } from './exporter';
 import { createResourceAttributes } from './resource';
 
