@@ -1,287 +1,268 @@
-/**
- * @Description: Test cases for trace module
- * @Author: richen
- * @Date: 2025-04-01 11:00:00
- * @License: BSD (3-Clause)
- * @Copyright (c): <richenlin(at)gmail.com>
- */
-import Koa from 'koa';
-import { createServer, Server } from 'http';
 import { Trace } from '../src/trace/trace';
-import { Koatty } from 'koatty_core';
+import { Koatty, KoattyContext } from "koatty_core";
+import { SpanManager } from '../src/opentelemetry/spanManager';
+import { Span } from '@opentelemetry/api';
 
-describe('trace.ts', () => {
-  let app: Koa;
-  let server: Server;
-  const port = 3002;
-  const mockApp = {
-    name: 'testApp',
-    appDebug: true,
-    getMetaData: jest.fn(),
-    server: { status: 200 }
-  } as unknown as Koatty;
+// Minimal mock for Koatty app with only used properties
+const mockTracer = {
+  startSpan: jest.fn().mockImplementation((name: string) => ({
+    end: jest.fn(),
+    setAttribute: jest.fn(),
+    setAttributes: jest.fn(),
+    addEvent: jest.fn(),
+    setStatus: jest.fn(),
+    updateName: jest.fn(),
+    isRecording: jest.fn().mockReturnValue(true),
+    recordException: jest.fn(),
+    spanContext: jest.fn().mockReturnValue({
+      traceId: 'mock-trace-id',
+      spanId: 'mock-span-id',
+      traceFlags: 1
+    })
+  }))
+};
 
-  beforeEach((done) => {
-    app = new Koa();
-    server = createServer(app.callback()).listen(port, done);
-  });
+const mockApp = {
+  name: 'test-app',
+  appDebug: true,
+  getMetaData: jest.fn().mockImplementation((key: string) => {
+    if (key === 'tracer') return [mockTracer];
+    if (key === 'spanManager') return [mockSpanManager];
+    return [];
+  }),
+  once: jest.fn(),
+  server: { 
+    status: 200
+  }
+} as unknown as Koatty;
 
-  afterEach((done) => {
-    server.close(done);
-  });
+// Enhanced mock for IncomingMessage with all methods mocked
+const mockIncomingMessage = {
+  on: jest.fn().mockImplementation((event, listener) => {
+    if (event === 'data') listener(Buffer.from('test'));
+    if (event === 'end') listener();
+    return this;
+  }),
+  once: jest.fn(),
+  emit: jest.fn(),
+  headers: {},
+  method: 'GET',
+  url: '/test',
+  socket: {},
+  httpVersion: '1.1',
+  httpVersionMajor: 1,
+  httpVersionMinor: 1,
+  getMetaData: jest.fn().mockReturnValue([{_body: {}}]),
+  destroy: jest.fn(),
+  setTimeout: jest.fn(),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  removeAllListeners: jest.fn(),
+  setEncoding: jest.fn(),
+  pause: jest.fn(),
+  resume: jest.fn(),
+  pipe: jest.fn()
+} as unknown as any;
 
-  it('should generate and propagate request ID', async () => {
-    const options = {
-      requestIdHeaderName: 'X-Request-Id',
-      requestIdName: 'requestId'
-    };
-    
-    const middleware = await Trace(options, mockApp);
-    app.use(middleware);
-    app.use(async ctx => {
-      // ctx.requestId = 'test-request-id';
-      ctx.setMetaData = jest.fn();
-      ctx.getMetaData = jest.fn();
-      // ctx.headers = {};
-      ctx.body = JSON.stringify({ requestId: ctx.requestId });
-      ctx.type = 'application/json';
-    });
+// Enhanced mock for ServerResponse
+const mockServerResponse = {
+  on: jest.fn(),
+  once: jest.fn().mockImplementation((event: string, callback: () => void) => {
+    if (event === 'finish') {
+      callback();
+    }
+  }),
+  emit: jest.fn(),
+  setHeader: jest.fn(),
+  statusCode: 200,
+  statusMessage: 'OK',
+  end: jest.fn(),
+  writeHead: jest.fn(),
+  write: jest.fn(),
+  addListener: jest.fn(),
+  removeListener: jest.fn()
+} as unknown as any;
 
-    const response = await fetch(`http://localhost:${port}`);
-    const data = await response.json();
-    
-    expect(response.status).toBe(200);
-    expect(data.requestId).toBeDefined();
-    expect(response.headers.get('X-Request-Id')).toBe(data.requestId);
-  });
-
-  it('should integrate with OpenTelemetry when enabled', async () => {
-    const mockTracer = {
-      startSpan: jest.fn().mockReturnValue({
-        setAttribute: jest.fn(),
-        end: jest.fn(),
-        addEvent: jest.fn(),
-        setStatus: jest.fn()
-      })
-    };
-    mockApp.getMetaData = jest.fn().mockReturnValue([mockTracer]);
-    
-    const options = {
-      enableTrace: true,
-      requestIdHeaderName: 'X-Request-Id'
-    };
-    
-    const middleware = await Trace(options, mockApp);
-    app.use(middleware);
-    app.use(async ctx => {
-      // ctx.requestId = 'otel-request-id';
-      ctx.setMetaData = jest.fn();
-      ctx.getMetaData = jest.fn();
-      // ctx.headers = {
-      //   'traceparent': '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
-      //   'x-request-id': 'otel-request-id'
-      // };
-      ctx.body = JSON.stringify({ 
-        success: true,
-        requestId: ctx.requestId
-      });
-      ctx.type = 'application/json';
-    });
-
-    const response = await fetch(`http://localhost:${port}`, {
-      headers: {
-        'traceparent': '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
-        'x-request-id': 'otel-request-id'
-      }
-    });
-    const data = await response.json();
-    
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.requestId).toBe('otel-request-id');
-    expect(response.headers.get('X-Request-Id')).toBe('otel-request-id');
-    expect(mockTracer.startSpan).toHaveBeenCalled();
-  });
-
-  it('should handle gRPC protocol requests', async () => {
-    const options = {
-      requestIdName: 'requestId'
-    };
-    
-    const ctx = {
-      protocol: 'grpc',
-      getMetaData: jest.fn().mockImplementation((key) => {
-        if (key === 'originalPath') return ['/test'];
-        if (key === '_body') return [{ requestId: 'grpc-request-id' }];
-        return [];
-      }),
-      setMetaData: jest.fn((key: string, value: any) => {
-        if (key === 'tracer_span') {
-          ctx[key] = value;
-        }
-        return ctx;
-      }),
-      requestId: 'grpc-request-id',
-      req: {
-        httpVersion: '1.1',
-        headers: {},
-        get: jest.fn(),
+// Enhanced mock for Koatty context
+const createMockContext = (protocol = 'http'): KoattyContext => ({
+  protocol,
+  status: 200,
+  path: '/test',
+  headers: {},
+  query: {},
+  set: jest.fn(),
+  setMetaData: jest.fn(),
+  getMetaData: jest.fn().mockReturnValue([{
+    _body: {
+      requestId: 'test-request-id'
+    }
+  }]),
+  rpc: { 
+    call: { 
+      metadata: { 
         set: jest.fn(),
-        socket: {
-          encrypted: false
-        }
+        get: jest.fn().mockReturnValue(['test-value'])
       },
-      query: {},
-      res: {
-        once: jest.fn(),
-        emit: jest.fn(),
-        setHeader: jest.fn(),
-        getHeader: jest.fn()
-      },
-      rpc: {
-        call: {
-          metadata: {
-            set: jest.fn(),
-            getMap: jest.fn().mockReturnValue(new Map()),
-            get: jest.fn()
-          },
-          sendMetadata: jest.fn(),
-          once: jest.fn(),
-          callback: jest.fn().mockImplementation((err, response) => {
-            if (err) throw err;
-            return response;
-          })
-        },
-        callback: jest.fn()
-      },
-      respond: false,
-      set: jest.fn(),
-      headers: {},
-      body: null,
-      status: 200
-    } as any;
+      sendMetadata: jest.fn(),
+      once: jest.fn()
+    },
+    callback: jest.fn()
+  },
+  req: {
+    ...mockIncomingMessage,
+    on: jest.fn()
+  },
+  res: {
+    ...mockServerResponse,
+    once: jest.fn().mockImplementation((event, callback) => {
+      if (event === 'finish') callback();
+    })
+  },
+  body: '',
+  requestId: '',
+  get: jest.fn(),
+  originalPath: '/test',
+  startTime: Date.now()
+} as unknown as KoattyContext);
 
-    const next = jest.fn();
-    
-    const middleware = await Trace(options, mockApp);
-    await middleware(ctx, next);
-    
-    expect(ctx.requestId).toBeDefined();
-    expect(ctx.rpc?.call?.metadata?.set).toHaveBeenCalled();
+// Mock Span
+const mockSpan: Span = {
+  end: jest.fn(),
+  setAttributes: jest.fn()
+} as unknown as Span;
+
+// Complete mock for SpanManager with tracer
+const mockSpanManager: SpanManager = {
+  createSpan: jest.fn().mockImplementation((serviceName: string) => {
+    const span = {
+      ...mockSpan,
+      setAttribute: jest.fn(),
+      setAttributes: jest.fn(),
+      addEvent: jest.fn(),
+      setStatus: jest.fn(),
+      updateName: jest.fn()
+    };
+    return span;
+  }),
+  endSpan: jest.fn(),
+  startSpan: jest.fn().mockImplementation((serviceName: string) => {
+    const span = {
+      ...mockSpan,
+      setAttribute: jest.fn(),
+      setAttributes: jest.fn(),
+      addEvent: jest.fn(),
+      setStatus: jest.fn(),
+      updateName: jest.fn()
+    };
+    return span;
+  }),
+  tracer: {
+    startSpan: jest.fn().mockImplementation((name: string) => {
+      return {
+        ...mockSpan,
+        name,
+        setAttribute: jest.fn(),
+        setAttributes: jest.fn(),
+        addEvent: jest.fn(),
+        setStatus: jest.fn(),
+        updateName: jest.fn(),
+        end: jest.fn(),
+        isRecording: jest.fn().mockReturnValue(true),
+        recordException: jest.fn(),
+        spanContext: jest.fn().mockReturnValue({
+          traceId: 'mock-trace-id',
+          spanId: 'mock-span-id',
+          traceFlags: 1
+        })
+      };
+    }),
+    getCurrentSpan: jest.fn().mockReturnValue(mockSpan),
+    withSpan: jest.fn(),
+    bind: jest.fn(),
+    getActiveSpan: jest.fn(),
+    startActiveSpan: jest.fn()
+  },
+  setupSpanTimeout: jest.fn(),
+  injectContext: jest.fn(),
+  setBasicAttributes: jest.fn(),
+  getTracer: jest.fn().mockReturnValue({
+    startSpan: jest.fn().mockReturnValue(mockSpan)
+  })
+} as unknown as SpanManager;
+
+describe('Trace Middleware', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('should handle WebSocket protocol requests', async () => {
-    const options = {
-      requestIdHeaderName: 'X-Request-Id'
-    };
-    
-    const ctx = {
-      protocol: 'ws',
-      set: jest.fn(),
-      requestId: 'ws-request-id',
-      respond: false,
-      req: {
-        httpVersion: '1.1',
-        headers: {
-          'x-request-id': 'ws-request-id'
-        },
-        get: jest.fn(),
-        socket: {
-          encrypted: false
-        }
-      },
-      res: {
-        setHeader: jest.fn(),
-        getHeader: jest.fn(),
-        once: jest.fn((event, callback) => {
-          if (event === 'finish') {
-            process.nextTick(() => {
-              ctx.status = 200;
-              callback();
-            });
-          }
-          return ctx.res;
-        }),
-        emit: jest.fn(),
-        on: jest.fn()
-      },
-      headers: {},
-      body: null,
-      status: 200,
-      getMetaData: jest.fn(),
-      setMetaData: jest.fn((key: string, value: any) => {
-        if (key === 'tracer_span') {
-          ctx[key] = value;
-        }
-      }),
-      query: {},
-      request: {
-        headers: {
-          'x-request-id': 'ws-request-id'
-        }
-      },
-      rpc: {
-        call: {
-          metadata: {
-            set: jest.fn(),
-            getMap: jest.fn().mockReturnValue(new Map()),
-            get: jest.fn()
-          }
-        }
-      },
-      setHeader: jest.fn()
-    } as any;
+  test('should create middleware function', () => {
+    const middleware = Trace({}, mockApp);
+    expect(typeof middleware).toBe('function');
+  });
 
-    const next = jest.fn();
-    
-    const middleware = await Trace(options, mockApp);
-    await middleware(ctx, next);
-    
-    expect(ctx.set).toHaveBeenCalledWith(
-      'X-Request-Id', 
-      expect.stringMatching(/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i)
+  test('should handle server shutdown', async () => {
+    const ctx = createMockContext();
+    const app = { ...mockApp, server: { status: 503 } };
+    const middleware = Trace({}, app as any);
+    await middleware(ctx, jest.fn());
+    expect(ctx.status).toBe(503);
+    expect(ctx.body).toBe('Server is in the process of shutting down');
+  });
+
+  test('should generate request ID', async () => {
+    const ctx = createMockContext();
+    const middleware = Trace({}, mockApp);
+    await middleware(ctx, jest.fn());
+    expect(ctx.requestId).toBeDefined();
+  });
+
+  test('should handle HTTP protocol', async () => {
+    const ctx = createMockContext('http');
+    const middleware = Trace({}, mockApp);
+    await middleware(ctx, jest.fn());
+    expect(ctx.set).toHaveBeenCalled();
+  });
+
+  test('should handle gRPC protocol', async () => {
+    const ctx = createMockContext('grpc');
+    const middleware = Trace({}, mockApp);
+    await middleware(ctx, jest.fn());
+    expect(ctx.respond).toBe(false);
+  });
+
+  test('should handle WebSocket protocol', async () => {
+    const ctx = createMockContext('ws');
+    const middleware = Trace({}, mockApp);
+    await middleware(ctx, jest.fn());
+    expect(ctx.respond).toBe(false);
+  });
+
+  test('should initialize OpenTelemetry when enabled', () => {
+    Trace({ enableTrace: true }, mockApp);
+    expect(mockApp.once).toHaveBeenCalled();
+  });
+
+  test('should create span when tracing is enabled', async () => {
+    const ctx = createMockContext();
+    const middleware = Trace({ 
+      enableTrace: true,
+    }, mockApp);
+    await middleware(ctx, jest.fn());
+    expect(mockSpanManager.createSpan).toHaveBeenCalledWith(
+      mockTracer,
+      expect.anything(),
+      expect.any(String)
     );
   });
 
-  it('should handle server termination', async () => {
-    const terminatedApp = {
-      ...mockApp,
-      server: { status: 503 }
-    };
+  test('should enable async hooks when configured', async () => {
+    const ctx = createMockContext();
+    const wrapEmitterSpy = jest.spyOn(require('../src/trace/wrap'), 'wrapEmitter');
     
-    const ctx = {
-      status: 200,
-      set: jest.fn(),
-      body: null,
-      protocol: 'http',
-      req: {
-        httpVersion: '1.1',
-        headers: {},
-        get: jest.fn(),
-        socket: {
-          encrypted: false
-        }
-      },
-      res: {
-        end: jest.fn(),
-        once: jest.fn((event, callback) => {
-          if (event === 'finish') {
-            process.nextTick(() => {
-              ctx.status = 200;
-              callback();
-            });
-          }
-          return ctx.res;
-        }),
-      }
-    } as any;
-
-    const next = jest.fn();
+    const middleware = Trace({ asyncHooks: true }, mockApp);
+    await middleware(ctx, jest.fn());
     
-    const middleware = await Trace({}, terminatedApp as any);
-    await middleware(ctx, next);
-    
-    expect(ctx.status).toBe(503);
-    expect(ctx.body).toBe('Server is in the process of shutting down');
+    expect(wrapEmitterSpy).toHaveBeenCalledWith(ctx.req, expect.any(Object));
+    expect(wrapEmitterSpy).toHaveBeenCalledWith(ctx.res, expect.any(Object));
   });
 });

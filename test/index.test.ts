@@ -15,7 +15,7 @@
  * @Copyright (c): <richenlin(at)gmail.com>
  */
 import * as index from '../src/index';
-import * as trace from '../src/trace';
+import * as trace from '../src/trace/trace';
 
 describe('index.ts', () => {
   it('should re-export trace module', () => {

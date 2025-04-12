@@ -8,10 +8,11 @@
  * @Copyright (c): <richenlin(at)gmail.com>
  */
 import { KoattyContext, KoattyNext } from "koatty_core";
-import { extensionOptions, catcher } from "../trace/catcher";
+import { catcher } from "../trace/catcher";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from '@opentelemetry/api';
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
+import { extensionOptions } from "../trace/itrace";
 
 
 export interface Handler {
@@ -20,7 +21,7 @@ export interface Handler {
 
 export abstract class BaseHandler implements Handler {
   abstract handle(ctx: KoattyContext, next: KoattyNext, ext: extensionOptions): Promise<any>;
-  
+
   protected commonPreHandle(ctx: KoattyContext, ext: extensionOptions) {
     // Encoding
     ctx.encoding = ext?.encoding;
@@ -34,7 +35,7 @@ export abstract class BaseHandler implements Handler {
   }
 
   protected handleError(err: Error, ctx: KoattyContext, ext: extensionOptions) {
-    return catcher(ctx, err, <Span>ext.span, ext.globalErrorHandler, ext);
+    return catcher(ctx, err, ext);
   }
 
   private setSecurityHeaders(ctx: KoattyContext) {
@@ -44,19 +45,23 @@ export abstract class BaseHandler implements Handler {
   }
 
   private startTraceSpan(ctx: KoattyContext, ext: extensionOptions) {
-    if (ext.span) {
-      ext.span.setAttribute(SemanticAttributes.HTTP_URL, ctx.originalUrl);
-      ext.span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
+    if (ext.spanManager) {
+      ext.spanManager.setSpanAttributes({
+        [SemanticAttributes.HTTP_URL]: ctx.originalUrl,
+        [SemanticAttributes.HTTP_METHOD]: ctx.method
+      });
     }
   }
 
   private endTraceSpan(ctx: KoattyContext, ext: extensionOptions, msg?: string) {
-    if (ext.span) {
-      ext.span.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, ctx.status);
-      ext.span.setAttribute(SemanticAttributes.HTTP_METHOD, ctx.method);
-      ext.span.setAttribute(SemanticAttributes.HTTP_URL, ctx.url);
-      ext.span.addEvent("request", { "message": msg });
-      ext.span.end();
+    if (ext.spanManager) {
+      ext.spanManager.setSpanAttributes({
+        [SemanticAttributes.HTTP_STATUS_CODE]: ctx.status,
+        [SemanticAttributes.HTTP_METHOD]: ctx.method,
+        [SemanticAttributes.HTTP_URL]: ctx.url
+      });
+      ext.spanManager.addSpanEvent("request", { "message": msg });
+      ext.spanManager.endSpan();
     }
   }
 
@@ -70,7 +75,7 @@ export abstract class BaseHandler implements Handler {
  */
 export enum ProtocolType {
   HTTP = 'http',
-  GRPC = 'grpc', 
+  GRPC = 'grpc',
   WS = 'ws',
   GRAPHQL = 'graphql'
 }

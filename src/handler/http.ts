@@ -134,7 +134,6 @@ export function respond(ctx: KoattyContext, ext?: extensionOptions) {
 
   // Compression logic
   if (compression !== 'none') {
-    let compressStream;
     if (compression === 'brotli') {
       try {
         ctx.set('Content-Encoding', 'br');

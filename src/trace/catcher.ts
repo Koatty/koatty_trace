@@ -14,6 +14,7 @@ import { Exception, isException } from "koatty_exception";
 import { Helper } from "koatty_lib";
 import { Span } from "@opentelemetry/api";
 import { extensionOptions } from "./itrace";
+import { SpanManager } from '../opentelemetry/spanManager';
 
 /**
  * Global error catcher for handling exceptions in Koatty framework.
@@ -34,13 +35,12 @@ import { extensionOptions } from "./itrace";
 export function catcher<T extends Exception>(
   ctx: KoattyContext,
   err: Error | Exception | T,
-  span?: Span,
-  globalErrorHandler?: T,
   ext?: extensionOptions
 ) {
   const { message: sanitizedMessage, status } = getErrorInfo(ctx, err);
   const code = (<T>err).code || 1;
   const sanitizedStack = sanitizeStack(err.stack);
+  const span = ext.spanManager.getSpan();
 
   // 如果是异常对象，直接返回
   if (isException(err)) {
@@ -48,7 +48,7 @@ export function catcher<T extends Exception>(
       setMessage(sanitizedMessage).setSpan(span).setStack(sanitizedStack).handler(ctx);
   }
   // 执行自定义全局异常处理
-  const ins: Exception = IOCContainer.getInsByClass(globalErrorHandler,
+  const ins: Exception = IOCContainer.getInsByClass(ext.globalErrorHandler,
     [sanitizedMessage, code, status, sanitizedStack, span])
   if (Helper.isFunction(ins?.handler)) {
     return ins.handler(ctx);
@@ -83,10 +83,16 @@ export function catcher<T extends Exception>(
 function getErrorInfo<T extends Exception>(ctx: KoattyContext,
   err: Error | Exception | T) {
   // Status code determination
-  const status = 
-    ('status' in err && typeof err.status === 'number') ? err.status :
-    (ctx.status === 404 && !(ctx.response as any)._explicitStatus) ? 404 :
-    ctx.status || 500;
+  let status = 500; // 默认 500（服务器错误）
+  if ('status' in err && typeof err.status === 'number') {
+    status = err.status;
+  } else if (err instanceof Error) {
+    status = 500; // 确保 throw new Error() 不会误判为 404
+  } else if (ctx.status === 404 && !(ctx.response as any)._explicitStatus) {
+    status = 404; // 未匹配路由的默认 404
+  } else {
+    status = ctx.status || 500;
+  }
 
   // Message extraction and sanitization
   let message = "";

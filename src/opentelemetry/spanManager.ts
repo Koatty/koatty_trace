@@ -1,4 +1,4 @@
-import { Span, context, trace } from '@opentelemetry/api';
+import { Span, context, trace, Tracer, SpanAttributes } from '@opentelemetry/api';
 import { defaultTextMapSetter } from '@opentelemetry/api';
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import { KoattyContext } from "koatty_core";
@@ -10,26 +10,35 @@ import { TraceOptions } from "../trace/itrace";
  */
 export class SpanManager {
   private activeSpans = new Map<string, { span: Span, timer: NodeJS.Timeout }>();
+  private span: Span | undefined;
 
   constructor(private options: TraceOptions) {}
 
-  createSpan(tracer: any, ctx: KoattyContext, serviceName: string): Span | undefined {
+  createSpan(tracer: Tracer, ctx: KoattyContext, serviceName: string): Span | undefined {
     const shouldSample = Math.random() < (this.options.samplingRate ?? 1.0);
     if (!shouldSample) return undefined;
 
     const propagator = new W3CTraceContextPropagator();
-    const span = tracer.startSpan(serviceName);
-    this.setupSpanTimeout(span);
-    this.injectContext(span, ctx);
-    this.setBasicAttributes(span, ctx);
+    if (!tracer.startSpan) {
+      logger.error('Tracer does not have startSpan method');
+      return undefined;
+    }
+    this.span = tracer.startSpan(serviceName);
+    this.setupSpanTimeout();
+    this.injectContext(ctx);
+    this.setBasicAttributes(ctx);
 
-    return span;
+    return this.span;
   }
 
-  private setupSpanTimeout(span: Span) {
+  getSpan(): Span | undefined {
+    return this.span;
+  }
+
+  private setupSpanTimeout() {
     if (!this.options.spanTimeout) return;
 
-    const traceId = span.spanContext().traceId;
+    const traceId = this.span.spanContext().traceId;
     const timer = setTimeout(() => {
       const entry = this.activeSpans.get(traceId);
       if (entry) {
@@ -41,14 +50,14 @@ export class SpanManager {
       }
     }, this.options.spanTimeout);
 
-    this.activeSpans.set(traceId, { span, timer });
+    this.activeSpans.set(traceId, { span: this.span, timer });
   }
 
-  private injectContext(span: Span, ctx: KoattyContext) {
+  private injectContext(ctx: KoattyContext) {
     const propagator = new W3CTraceContextPropagator();
     const carrier: { [key: string]: string } = {};
 
-    context.with(trace.setSpan(context.active(), span), () => {
+    context.with(trace.setSpan(context.active(), this.span), () => {
       propagator.inject(context.active(), carrier, defaultTextMapSetter);
       Object.entries(carrier).forEach(([key, value]) => {
         ctx.set(key, value);
@@ -56,26 +65,34 @@ export class SpanManager {
     });
   }
 
-  private setBasicAttributes(span: Span, ctx: KoattyContext) {
-    span.setAttribute("http.request_id", ctx.requestId);
-    span.setAttribute("http.method", ctx.method);
-    span.setAttribute("http.route", ctx.path);
+  private setBasicAttributes(ctx: KoattyContext) {
+    this.span.setAttribute("http.request_id", ctx.requestId);
+    this.span.setAttribute("http.method", ctx.method);
+    this.span.setAttribute("http.route", ctx.path);
 
     if (this.options.spanAttributes) {
       const customAttrs = this.options.spanAttributes(ctx);
       Object.entries(customAttrs).forEach(([key, value]) => {
-        span.setAttribute(key, value);
+        this.span.setAttribute(key, value);
       });
     }
   }
 
-  endSpan(span: Span) {
-    const traceId = span.spanContext().traceId;
+  setSpanAttributes(attributes: SpanAttributes) {
+    this.span.setAttributes(attributes);
+  }
+
+  addSpanEvent(name: string, attributes?: SpanAttributes) {
+    this.span.addEvent(name, attributes);
+  }
+
+  endSpan() {
+    const traceId = this.span.spanContext().traceId;
     const entry = this.activeSpans.get(traceId);
     if (entry) {
       clearTimeout(entry.timer);
       this.activeSpans.delete(traceId);
     }
-    span.end();
+    this.span.end();
   }
 }

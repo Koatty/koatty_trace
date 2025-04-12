@@ -39,16 +39,17 @@ export function initSDK(app: Koatty, options: TraceOptions) {
   };
 
   // Configure logging
-  const logLevel = logger.getLevel();
-  const diagLogLevel = Object.values(DiagLogLevel).find(
-    (level) => level.toString() === logLevel.toString()
-  ) || DiagLogLevel.INFO;
-  diag.setLogger(new Logger(), diagLogLevel as DiagLogLevel);
+  // const logLevel = logger.getLevel();
+  // const diagLogLevel = Object.values(DiagLogLevel).find(
+  //   (level) => level.toString() === logLevel.toString()
+  // ) || DiagLogLevel.INFO;
+  
+  // diag.setLogger(new Logger(), diagLogLevel as DiagLogLevel);
 
   return new NodeSDK({
     resource: createResourceAttributes(app, options),
     traceExporter,
-    spanProcessor: new BatchSpanProcessor(traceExporter, batchOptions),
+    spanProcessors: [new BatchSpanProcessor(traceExporter, batchOptions)],
     instrumentations: options.otlpInstrumentations || [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-grpc': {

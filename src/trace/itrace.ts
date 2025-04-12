@@ -102,7 +102,6 @@ export interface extensionOptions {
   /** 是否终止请求 */
   terminated?: boolean,
   /** OpenTelemetry Span对象，用于链路追踪 */
-  span?: Span,
   spanManager?: SpanManager,
   /** 自定义全局异常处理类 */
   globalErrorHandler?: any,

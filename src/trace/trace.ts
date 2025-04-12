@@ -12,15 +12,14 @@ import { AppEvent, Koatty, KoattyContext, KoattyNext } from "koatty_core";
 import { Helper } from "koatty_lib";
 import { Span } from '@opentelemetry/api';
 import { SpanManager } from '../opentelemetry/spanManager';
-import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
-import { DefaultLogger as logger } from "koatty_logger";
 import { HandlerFactory } from '../handler/factory';
 import { ProtocolType } from '../handler/base';
 import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
 import { extensionOptions, TraceOptions } from "./itrace";
 import { initSDK, startTracer } from "../opentelemetry/sdk";
 import { TopologyAnalyzer } from "../opentelemetry/topology";
+import { getRequestId, getTraceId } from './utils';
 
 /** 
  * defaultOptions
@@ -29,7 +28,7 @@ const defaultOptions = {
   timeout: 10000, // response timeout in milliseconds
   requestIdHeaderName: 'X-Request-Id',
   requestIdName: "requestId",
-  idFactory: randomUUID,
+  idFactory: getTraceId,
   encoding: 'utf-8',
   enableTrace: false,
   enableTopology: false,
@@ -65,11 +64,13 @@ const defaultOptions = {
  */
 export function Trace(options: TraceOptions, app: Koatty) {
   options = { ...defaultOptions, ...options };
-  const spanManager = new SpanManager(options);
   const geh: any = IOCContainer.getClass("ExceptionHandler", "COMPONENT");
 
+  let spanManager: SpanManager | undefined;
   let tracer: any;
+  
   if (options.enableTrace) {
+    spanManager = app.getMetaData("spanManager")[0] || new SpanManager(options);
     tracer = app.getMetaData("tracer")[0] || initSDK(app, options);
     app.once(AppEvent.appStart, async () => {
       await startTracer(tracer, app, options);
@@ -114,7 +115,6 @@ export function Trace(options: TraceOptions, app: Koatty) {
       encoding: options.encoding,
       requestId,
       terminated: false,
-      span,
       spanManager,
       globalErrorHandler: geh,
     };
@@ -131,34 +131,6 @@ export function Trace(options: TraceOptions, app: Koatty) {
 
     return handleRequest(ctx, next, options, ext);
   };
-}
-
-/**
- * Get request id from context based on protocol and options.
- * For grpc protocol, get from metadata or request body.
- * For other protocols, get from headers or query parameters.
- * If no request id found, generate a new trace id.
- * 
- * @param {KoattyContext} ctx - Koatty context object
- * @param {TraceOptions} options - Trace configuration options
- * @returns {string} Request ID or generated trace ID
- */
-function getRequestId(ctx: KoattyContext, options: TraceOptions): string {
-  let requestId = '';
-  switch (ctx.protocol) {
-    case "grpc":
-      const request: any = ctx?.getMetaData("_body")[0] || {};
-      requestId = ctx?.getMetaData(<string>options.requestIdName) ||
-        request[<string>options.requestIdName] || '';
-      break;
-    default:
-      if (options.requestIdHeaderName) {
-        const headerValue = ctx.headers?.[options.requestIdHeaderName.toLowerCase()] ||
-          ctx.query?.[options.requestIdName] || '';
-        requestId = Helper.isArray(headerValue) ? headerValue.join(".") : headerValue;
-      }
-  }
-  return requestId || getTraceId(options);
 }
 
 /**
@@ -187,7 +159,7 @@ async function handleRequest(
   try {
     const result = await respWarper(ctx, next, options, ext);
     
-    if (options.metricsReporter && ext.span) {
+    if (options.metricsReporter && ext.spanManager) {
       options.metricsReporter({
         duration: performance.now() - startTime,
         status: ctx.status || 200,
@@ -198,46 +170,50 @@ async function handleRequest(
     
     return result;
   } finally {
-    if (ext.span) {
-      ext.spanManager.endSpan(ext.span);
+    if (ext.spanManager) {
+      ext.spanManager.endSpan();
     }
   }
 }
 
 /**
- * Generate a trace ID using the provided factory function or UUID.
+ * Wraps the response handling process with trace functionality.
  * 
- * @param {TraceOptions} [options] - Optional configuration options
- * @param {Function} [options.idFactory] - Custom function to generate trace ID
- * @returns {string} The generated trace ID
+ * @param ctx - Koatty context object
+ * @param next - Next middleware function
+ * @param options - Trace configuration options
+ * @param ext - Extension options for tracing
+ * @returns Promise that resolves after handling the request
+ * @throws Rethrows any errors that occur during handling
  */
-function getTraceId(options?: TraceOptions) {
-  return Helper.isFunction(options?.idFactory) ? options.idFactory() : randomUUID();
-}
-
 async function respWarper(
   ctx: KoattyContext,
   next: KoattyNext,
   options: TraceOptions,
   ext: extensionOptions
 ) {
-  if (options.requestIdName && ctx.setMetaData) {
-    ctx.setMetaData(options.requestIdName, ctx.requestId);
-  }
+  try {
+    if (options.requestIdName && ctx.setMetaData) {
+      ctx.setMetaData(options.requestIdName, ctx.requestId);
+    }
 
-  const protocol = (ctx?.protocol || "http").toLowerCase();
-  if (protocol === "grpc" || protocol === "ws" || protocol === "wss") {
-    ctx.respond = false;
-  }
+    const protocol = (ctx?.protocol || "http").toLowerCase();
+    if (protocol === "grpc" || protocol === "ws" || protocol === "wss") {
+      ctx.respond = false;
+    }
 
-  if (options.requestIdHeaderName) {
-    ctx.set(options.requestIdHeaderName, ctx.requestId);
-  }
+    if (options.requestIdHeaderName) {
+      ctx.set(options.requestIdHeaderName, ctx.requestId);
+    }
 
-  if (ctx.rpc?.call?.metadata && options.requestIdName) {
-    ctx.rpc.call.metadata.set(options.requestIdName, ctx.requestId);
-  }
+    if (ctx.rpc?.call?.metadata && options.requestIdName) {
+      ctx.rpc.call.metadata.set(options.requestIdName, ctx.requestId);
+    }
 
-  const handler = HandlerFactory.getHandler(protocol as ProtocolType);
-  return handler.handle(ctx, next, ext);
+    const handler = HandlerFactory.getHandler(protocol as ProtocolType);
+    return await handler.handle(ctx, next, ext);
+  } catch (e) {
+    ext.terminated = true;
+    throw e;
+  }
 }

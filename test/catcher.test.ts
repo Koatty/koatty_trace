@@ -17,7 +17,7 @@
  * @Copyright (c): <richenlin(at)gmail.com>
  */
 import Koa from 'koa';
-import { catcher } from '../src/catcher';
+import { catcher } from '../src/trace/catcher';
 import { createServer, Server } from 'http';
 
 describe('catcher.ts', () => {
@@ -35,7 +35,7 @@ describe('catcher.ts', () => {
           ctx.throw(404, 'Not Found');
         }
       } catch (err) {
-        catcher(ctx, err);
+        catcher(ctx as any, err);
       }
     });
     server = createServer(app.callback()).listen(port, done);
