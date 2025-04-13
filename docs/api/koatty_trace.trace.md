@@ -4,7 +4,7 @@
 
 ## Trace() function
 
-Middleware function for request tracing and monitoring in Koatty framework. Provides request ID generation, OpenTelemetry tracing, async hooks support, and response handling.
+Trace middleware for Koatty framework that provides request tracing, topology analysis, and request lifecycle management capabilities.
 
 **Signature:**
 
@@ -42,7 +42,7 @@ TraceOptions
 
 </td><td>
 
-Configuration options for tracing middleware
+Configuration options for the trace middleware
 
 
 </td></tr>
@@ -67,11 +67,8 @@ Koatty application instance
 
 (ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;any&gt;
 
-Middleware function that handles request context and tracing
+{<!-- -->Function<!-- -->} Middleware function that handles request tracing and lifecycle
 
-Features: - Request ID generation and propagation - OpenTelemetry integration for distributed tracing - W3C Trace Context support - Async hooks for request context tracking - Server shutdown handling - Response wrapping and error handling
+Features: - Request tracing with OpenTelemetry - Request ID generation and propagation - Service topology analysis - Request lifecycle management - Server shutdown handling - Async hooks support for request context
 
-## Example
-
-app.use(Trace(<!-- -->{ EnableTrace: true, RequestIdName: 'requestId' }<!-- -->, app));
 

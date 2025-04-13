@@ -24,7 +24,7 @@ Description
 
 </td><td>
 
-Middleware function for request tracing and monitoring in Koatty framework. Provides request ID generation, OpenTelemetry tracing, async hooks support, and response handling.
+Trace middleware for Koatty framework that provides request tracing, topology analysis, and request lifecycle management capabilities.
 
 
 </td></tr>
