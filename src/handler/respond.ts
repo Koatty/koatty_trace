@@ -19,8 +19,8 @@ const StatusEmpty = [204, 205, 304];
 /**
  * Create compression middleware based on options
  */
-function getCompressMiddleware(ext?: extensionOptions): ReturnType<typeof compress> {
-  const compression = ext?.compression || 'none';
+export function compressMiddleware(ctx: KoattyContext): ReturnType<typeof compress> {
+  const acceptEncoding = ctx.get('Accept-Encoding') || '';
   const options: CompressOptions = {
     threshold: 1024,
     filter(contentType: string) {
@@ -28,22 +28,23 @@ function getCompressMiddleware(ext?: extensionOptions): ReturnType<typeof compre
     }
   };
 
-  if (compression === 'gzip') {
-    options.gzip = {
-      flush: require('zlib').constants.Z_SYNC_FLUSH
-    };
-    options.br = false;
-  } else if (compression === 'brotli') {
+  if (acceptEncoding.includes('br')) {
     options.br = {
       params: {
         [zlib.constants.BROTLI_PARAM_QUALITY]: 4
       }
     };
-  } else {
-    return (ctx, next) => next(); // 不压缩时返回空中间件
+    return compress(options);
+  } else if (acceptEncoding.includes('gzip')) {
+    options.gzip = {
+      flush: zlib.constants.Z_SYNC_FLUSH
+    };
+    options.br = false;
+    return compress(options);
   }
 
-  return compress(options);
+  return (ctx, next) => next(); // 不压缩时返回空中间件
+
 }
 
 /**
@@ -57,7 +58,7 @@ function getCompressMiddleware(ext?: extensionOptions): ReturnType<typeof compre
  * @returns void | Promise<void> Returns nothing or a Promise that resolves when response is sent
  */
 export function respond(ctx: KoattyContext, ext?: extensionOptions) {
-// allow bypassing koa
+  // allow bypassing koa
   if (false === ctx.respond) return;
   if (!ctx.writable) return;
 
@@ -98,19 +99,18 @@ export function respond(ctx: KoattyContext, ext?: extensionOptions) {
     return res.end(body);
   }
 
-  // Apply compression middleware
-  const compressMiddleware = getCompressMiddleware(ext);
-  return compressMiddleware(ctx, async () => {
-    // status
-    if (code === 404) {
-      ctx.status = 200;
-    }
+  // status
+  if (code === 404) {
+    ctx.status = 200;
+  }
 
+  // Apply compression middleware (it will handle no-compression case internally)
+  return compressMiddleware(ctx)(ctx, async () => {
     // responses
     if (Buffer.isBuffer(body)) return res.end(body);
     if ('string' === typeof body) return res.end(body);
     if (body instanceof Readable) {
-      const stream = body;
+      const stream: Readable = body;
       stream.on('error', (err: Error) => {
         Logger.Error('Response stream error:', err);
         stream.destroy();
@@ -123,6 +123,6 @@ export function respond(ctx: KoattyContext, ext?: extensionOptions) {
     if (!res.headersSent) {
       ctx.length = Buffer.byteLength(<string>body);
     }
-    res.end(body);
+    return res.end(body);
   });
 }
