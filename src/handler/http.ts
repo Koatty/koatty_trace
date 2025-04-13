@@ -13,15 +13,11 @@ import { Exception } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from "@opentelemetry/api";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
-import { Stream } from 'stream';
+import { Readable } from 'stream';
 import { catcher } from "../trace/catcher";
 import { BaseHandler, Handler } from "./base";
 import { extensionOptions } from "../trace/itrace";
-const zlib = require('zlib');
-const { brotliCompressSync } = require('brotli-wasm');
-
-// StatusEmpty
-const StatusEmpty = [204, 205, 304];
+import { respond } from "./respond";
 
 /**
  * HTTP request handler middleware for Koatty framework.
@@ -98,123 +94,4 @@ export class HttpHandler extends BaseHandler implements Handler {
       clearTimeout(response.timeout);
     }
   }
-}
-
-/**
- * Response helper with compression support.
- * A copy of koa respond: https://github.com/koajs/koa/blob/aa816ca523e0f7f3ca7623163762a2e63a7b0ee3/lib/application.js#L220
- *
- * @param {KoattyContext} ctx
- * @returns {*}  
- */
-export function respond(ctx: KoattyContext, ext?: extensionOptions) {
-  let compressStream: NodeJS.ReadWriteStream | null = null;
-  let compressSync: ((data: any) => Buffer) | null = null;
-  // Check if client accepts compression
-  const acceptEncoding = ctx.get('Accept-Encoding') || '';
-  let compression = ext.compression || 'none'; // none|gzip|brotli
-  if (compression === "none") {
-    if (acceptEncoding.includes('gzip')) {
-      compression = 'gzip';
-    } else if (acceptEncoding.includes('br')) {
-      compression = 'brotli';
-    }
-  }
-  
-  // Skip compression for small responses and specific content types
-  // const shouldCompress = !ctx.response.get('Content-Encoding') && 
-  //   !ctx.response.get('Content-Length') &&
-  //   !['image', 'audio', 'video', 'font', 'application/octet-stream'].some(type => 
-  //     ctx.response.get('Content-Type')?.includes(type)
-  //   );
-  // allow bypassing koa
-  if (false === ctx.respond) return;
-
-  if (!ctx.writable) return;
-
-  // Compression logic
-  if (compression !== 'none') {
-    if (compression === 'brotli') {
-      try {
-        ctx.set('Content-Encoding', 'br');
-        compressSync = brotliCompressSync;
-      } catch (e) {
-        Logger.Debug('brotli-wasm not available, falling back to gzip');
-      }
-    }
-    
-    if (!compressSync && compression === 'gzip') {
-      ctx.set('Content-Encoding', 'gzip');
-      compressStream = zlib.createGzip();
-    }
-  }
-
-  const res = ctx.res;
-  let body = ctx.body;
-  const code = ctx.status;
-
-  // Apply compression if enabled
-  if (compressSync) {
-    if (Buffer.isBuffer(body) || typeof body === 'string') {
-      body = compressSync(body);
-    }
-  } else if (compressStream) {
-    if (body instanceof Stream) {
-      body = body.pipe(compressStream);
-    }
-  }
-
-  // ignore body
-  if (StatusEmpty.includes(code)) {
-    // strip headers
-    ctx.body = null;
-    return res.end();
-  }
-
-  if ('HEAD' === ctx.method) {
-    if (!res.headersSent && !(<any>ctx.response).has('Content-Length')) {
-      const { length } = ctx.response;
-      if (Number.isInteger(length)) ctx.length = length;
-    }
-    return res.end();
-  }
-
-  // status body
-  if (null == body) {
-    if ((<any>ctx.response)._explicitNullBody) {
-      ctx.response.remove('Content-Type');
-      ctx.response.remove('Transfer-Encoding');
-      return res.end();
-    }
-    if (ctx.req.httpVersionMajor >= 2) {
-      body = String(code);
-    } else {
-      body = ctx.message || String(code);
-    }
-    if (!res.headersSent) {
-      ctx.type = 'text';
-      ctx.length = Buffer.byteLength(<string>body);
-    }
-    return res.end(body);
-  }
-
-  // status
-  if (code === 404) {
-    ctx.status = 200;
-  }
-
-  // responses
-  if (Buffer.isBuffer(body)) return res.end(body);
-  if ('string' === typeof body) return res.end(body);
-  if (body instanceof Stream) return (<Stream>body).pipe(res);
-
-  // body: json
-  body = JSON.stringify(body);
-  if (compressSync && compression !== 'none') {
-    body = compressSync(body);
-  }
-  if (!res.headersSent) {
-    ctx.length = Buffer.byteLength(<string>body);
-  }
-  res.end(body);
 }
