@@ -53,6 +53,9 @@ importers:
       brotli-wasm:
         specifier: ^1.3.0
         version: 1.3.1
+      koa-compress:
+        specifier: ^5.1.1
+        version: 5.1.1
       koatty_container:
         specifier: ^1.x.x
         version: 1.10.3(koatty_lib@1.4.1)(koatty_logger@2.1.8)
@@ -105,11 +108,14 @@ importers:
       '@types/koa-compose':
         specifier: ^3.x.x
         version: 3.2.8
+      '@types/koa-compress':
+        specifier: ^4.0.6
+        version: 4.0.6
       '@types/lodash':
         specifier: ^4.x.x
         version: 4.17.16
       '@types/node':
-        specifier: ^22.x.x
+        specifier: ^22.13.16
         version: 22.13.16
       '@types/on-finished':
         specifier: ^2.x.x
@@ -172,7 +178,7 @@ importers:
         specifier: ^10.x.x
         version: 10.9.2(@types/node@22.13.16)(typescript@5.8.2)
       tslib:
-        specifier: ^2.x.x
+        specifier: ^2.8.1
         version: 2.8.1
       typescript:
         specifier: ^5.x.x
@@ -1369,6 +1375,9 @@ packages:
   '@types/koa-compose@3.2.8':
     resolution: {integrity: sha512-4Olc63RY+MKvxMwVknCUDhRQX1pFQoBZ/lXcRLP69PQkEpze/0cr8LNqJQe5NFb/b19DWi2a5bTi2VAlQzhJuA==}
 
+  '@types/koa-compress@4.0.6':
+    resolution: {integrity: sha512-jJzlsQTeIXRfQzY7y2Dl/syqOxvEaNJzFTJ8ZGaDFWvqgMmCXplfCGjPfHQgU7xYNKq/mCdN3YWus1YOldfIwg==}
+
   '@types/koa@2.15.0':
     resolution: {integrity: sha512-7QFsywoE5URbuVnG3loe03QXuGajrnotr3gQkXcEBShORai23MePfFYdhz90FEtBBpkyIYQbVD+evKtloCgX3g==}
 
@@ -1669,6 +1678,10 @@ packages:
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
 
+  bytes@3.1.2:
+    resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
+    engines: {node: '>= 0.8'}
+
   cache-content-type@1.0.1:
     resolution: {integrity: sha512-IKufZ1o4Ut42YUrZSo8+qnMTrFuKkvyoLXUywKz9GJ5BrhOFGhLdkx9sG4KAnVvbY6kEcSFjLQul+DVmBm2bgA==}
     engines: {node: '>= 6.0.0'}
@@ -1777,6 +1790,10 @@ packages:
 
   compare-versions@3.6.0:
     resolution: {integrity: sha512-W6Af2Iw1z4CB7q4uU4hv646dW9GQuBM+YpC0UvUCWSD8w90SJjp+ujJuXaEMtAXBtSqGfMPuFOVn4/+FlaqfBA==}
+
+  compressible@2.0.18:
+    resolution: {integrity: sha512-AF3r7P5dWxL8MxyITRMlORQNaOA2IkAFaTr4k7BUumjPtRpGDTZpl0Pb1XCO6JeDCBdp126Cgs9sMxqSjgYyRg==}
+    engines: {node: '>= 0.6'}
 
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
@@ -2907,9 +2924,16 @@ packages:
   koa-compose@4.1.0:
     resolution: {integrity: sha512-8ODW8TrDuMYvXRwra/Kh7/rJo9BtOfPc6qO8eAfC80CnCvSjSl0bkRM24X6/XBBEyj0v1nRUQ1LyOy3dbqOWXw==}
 
+  koa-compress@5.1.1:
+    resolution: {integrity: sha512-UgMIN7ZoEP2DuoSQmD6CYvFSLt0NReGlc2qSY4bO4Oq0L56OiD9pDG41Kj/zFmVY/A3Wvmn4BqKcfq5H30LGIg==}
+    engines: {node: '>= 12'}
+
   koa-convert@2.0.0:
     resolution: {integrity: sha512-asOvN6bFlSnxewce2e/DK3p4tltyfC4VM7ZwuTuepI7dEQVcvpyFuBcEARu1+Hxg8DIwytce2n7jrZtRlPrARA==}
     engines: {node: '>= 10'}
+
+  koa-is-json@1.0.0:
+    resolution: {integrity: sha512-+97CtHAlWDx0ndt0J8y3P12EWLwTLMXIfMnYDev3wOTwH/RpBGMlfn4bDXlMEg1u73K6XRE9BbUp+5ZAYoRYWw==}
 
   koa@2.16.0:
     resolution: {integrity: sha512-Afhqq0Vq3W7C+/rW6IqHVBDLzqObwZ07JaUNUEF8yCQ6afiyFE3RAy+i7V0E46XOWlH7vPWn/x0vsZwNy6PWxw==}
@@ -5663,6 +5687,11 @@ snapshots:
     dependencies:
       '@types/koa': 2.15.0
 
+  '@types/koa-compress@4.0.6':
+    dependencies:
+      '@types/koa': 2.15.0
+      '@types/node': 22.13.16
+
   '@types/koa@2.15.0':
     dependencies:
       '@types/accepts': 1.3.7
@@ -6027,6 +6056,8 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
+  bytes@3.1.2: {}
+
   cache-content-type@1.0.1:
     dependencies:
       mime-types: 2.1.35
@@ -6132,6 +6163,10 @@ snapshots:
       dot-prop: 5.3.0
 
   compare-versions@3.6.0: {}
+
+  compressible@2.0.18:
+    dependencies:
+      mime-db: 1.52.0
 
   concat-map@0.0.1: {}
 
@@ -7506,10 +7541,19 @@ snapshots:
 
   koa-compose@4.1.0: {}
 
+  koa-compress@5.1.1:
+    dependencies:
+      bytes: 3.1.2
+      compressible: 2.0.18
+      http-errors: 1.8.1
+      koa-is-json: 1.0.0
+
   koa-convert@2.0.0:
     dependencies:
       co: 4.6.0
       koa-compose: 4.1.0
+
+  koa-is-json@1.0.0: {}
 
   koa@2.16.0:
     dependencies:
@@ -7627,6 +7671,7 @@ snapshots:
       '@opentelemetry/sdk-trace-node': 2.0.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.30.0
       brotli-wasm: 1.3.1
+      koa-compress: 5.1.1
       koatty_container: 1.10.3(koatty_lib@1.4.1)(koatty_logger@2.1.8)
       koatty_core: 1.15.0(koa@2.16.0)(koatty_container@1.10.3)(koatty_exception@1.6.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)(koatty_trace@1.14.1)
       koatty_exception: 1.6.0(koatty_container@1.10.3)(koatty_core@1.15.0)(koatty_lib@1.4.1)(koatty_logger@2.1.8)

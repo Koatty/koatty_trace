@@ -167,6 +167,4 @@ export interface extensionOptions {
   spanManager?: SpanManager,
   /** 自定义全局异常处理类 */
   globalErrorHandler?: any,
-  /** 压缩方式 none|gzip|brotli */
-  compression?: string,
 }

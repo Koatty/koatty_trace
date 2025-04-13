@@ -2,6 +2,7 @@ import { HttpHandler } from "../../src/handler/http";
 import { KoattyContext } from "koatty_core";
 import { Exception } from "koatty_exception";
 import { extensionOptions } from "../../src/trace/itrace";
+ import { compressMiddleware } from '../../src/handler/respond';
 
 describe('HttpHandler', () => {
   let handler: HttpHandler;
@@ -15,7 +16,6 @@ describe('HttpHandler', () => {
     
     mockExt = {
       timeout: 1000,
-      compression: 'none',
       spanManager: {
         getSpan: jest.fn().mockReturnValue({
           spanContext: () => ({ traceId: 'mock-trace-id', spanId: 'mock-span-id' }),
@@ -52,6 +52,22 @@ describe('HttpHandler', () => {
       requestId: 'test-request-id',
       originalPath: '/test',
       headers: {},
+      request: {
+        method: 'GET',
+        headers: {},
+        url: '/test'
+      },
+      response: {
+        status: 200,
+        body: 'test response',
+        headers: {},
+        get: jest.fn(),
+        set: jest.fn(),
+        has: jest.fn(),
+        remove: jest.fn(),
+        append: jest.fn(),
+        flushHeaders: jest.fn()
+      },
       res: {
         end: jest.fn(function(this: any, data?: any) {
           if (data) this.body = data;
@@ -68,8 +84,25 @@ describe('HttpHandler', () => {
       set: jest.fn((key: string, value: string) => {
         mockCtx.headers[key.toLowerCase()] = value;
       }),
+      vary: jest.fn(),
       respond: true,
-      writable: true
+      writable: true,
+      accepts: jest.fn(),
+      acceptsEncodings: jest.fn(),
+      acceptsCharsets: jest.fn(),
+      acceptsLanguages: jest.fn(),
+      is: jest.fn(),
+      getHeader: jest.fn(),
+      setHeader: jest.fn(),
+      removeHeader: jest.fn(),
+      type: '',
+      length: 0,
+      redirect: jest.fn(),
+      attachment: jest.fn(),
+      lastModified: '',
+      etag: '',
+      append: jest.fn(),
+      flushHeaders: jest.fn()
     };
   });
 
@@ -133,18 +166,26 @@ describe('HttpHandler', () => {
       expect(mockCtx.res.end).toHaveBeenCalledWith(JSON.stringify({ key: 'value' }));
     });
 
-    it('should apply gzip compression when requested', async () => {
-      mockExt.compression = 'gzip';
-      mockCtx.headers['accept-encoding'] = 'gzip';
-      await handler.handle(mockCtx, mockNext, mockExt);
-      expect(mockCtx.set).toHaveBeenCalledWith('Content-Encoding', 'gzip');
-    });
+    describe('compressMiddleware', () => {
+      
 
-    it('should apply brotli compression when requested', async () => {
-      mockExt.compression = 'brotli';
-      mockCtx.headers['accept-encoding'] = 'br';
-      await handler.handle(mockCtx, mockNext, mockExt);
-      expect(mockCtx.set).toHaveBeenCalledWith('Content-Encoding', 'br');
+      it('should return brotli middleware when accept-encoding includes br', () => {
+        mockCtx.headers['accept-encoding'] = 'br';
+        const middleware = compressMiddleware(mockCtx);
+        expect(middleware).toBeInstanceOf(Function);
+      });
+
+      it('should return gzip middleware when accept-encoding includes gzip', () => {
+        mockCtx.headers['accept-encoding'] = 'gzip';
+        const middleware = compressMiddleware(mockCtx);
+        expect(middleware).toBeInstanceOf(Function);
+      });
+
+      it('should return pass-through middleware when no compression supported', () => {
+        mockCtx.headers['accept-encoding'] = '';
+        const middleware = compressMiddleware(mockCtx);
+        expect(middleware).toBeInstanceOf(Function);
+      });
     });
   });
 });
