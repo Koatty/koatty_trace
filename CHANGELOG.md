@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.15.1](https://github.com/koatty/koatty_trace/compare/v1.15.0...v1.15.1) (2025-04-13)
+
+
+### Bug Fixes
+
+* safely access span from ext.spanManager to avoid potential null reference errors ([30cd581](https://github.com/koatty/koatty_trace/commit/30cd58119f1dcc741e0443c615fbe9c9800a4276))
+
 ## [1.15.0](https://github.com/koatty/koatty_trace/compare/v1.14.1...v1.15.0) (2025-04-13)
 
 
