@@ -38,7 +38,7 @@ export function catcher<T extends Exception>(
   const { message: sanitizedMessage, status } = getErrorInfo(ctx, err);
   const code = (<T>err).code || 1;
   const sanitizedStack = sanitizeStack(err.stack);
-  const span = ext.spanManager.getSpan();
+  const span = ext.spanManager?.getSpan();
 
   // 如果是异常对象，直接返回
   if (isException(err)) {
