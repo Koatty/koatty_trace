@@ -1,9 +1,12 @@
-/**
- * Response helper with compression support using koa-compress.
- * 
- * @param {KoattyContext} ctx
- * @param {extensionOptions} [ext]
- * @returns {void}
+/*
+ * @Description: Response helper with compression support using koa-compress.
+ * @Usage: 
+ * @Author: richen
+ * @Date: 2020-11-20 17:37:32
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2023-11-10 22:18:40
+ * @License: BSD (3-Clause)
+ * @Copyright (c) - <richenlin(at)gmail.com>
  */
 import type { KoattyContext } from "koatty_core";
 import { DefaultLogger as Logger } from "koatty_logger";

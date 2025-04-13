@@ -1,6 +1,4 @@
 import { HttpHandler } from "../../src/handler/http";
-import { KoattyContext } from "koatty_core";
-import { Exception } from "koatty_exception";
 import { extensionOptions } from "../../src/trace/itrace";
  import { compressMiddleware } from '../../src/handler/respond';
 
