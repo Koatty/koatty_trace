@@ -48,7 +48,9 @@ describe('opentelemetry.ts', () => {
 
   it('should initialize OpenTelemetry SDK with default options', () => {
     const options = {
-      otlpEndpoint: 'http://localhost:4318/v1/traces',
+      opentelemetryConf: {
+        endpoint: 'http://localhost:4318/v1/traces'
+      },
       enableTrace: true
     };
 
@@ -67,10 +69,12 @@ describe('opentelemetry.ts', () => {
 
   it('should initialize OpenTelemetry SDK with custom options', () => {
     const options = {
-      otlpEndpoint: 'http://custom-endpoint:4318/v1/traces',
-      otlpHeaders: { 'x-api-key': 'test-key' },
-      otlpTimeout: 5000,
-      otlpResourceAttributes: { 'custom.attribute': 'value' },
+      opentelemetryConf: {
+        endpoint: 'http://custom-endpoint:4318/v1/traces',
+        headers: { 'x-api-key': 'test-key' },
+        timeout: 5000,
+        resourceAttributes: { 'custom.attribute': 'value' }
+      },
       enableTrace: true
     };
 
@@ -89,7 +93,8 @@ describe('opentelemetry.ts', () => {
 
   it('should throw error when OTLP endpoint is missing', () => {
     const options = {
-      enableTrace: true
+      enableTrace: true,
+      opentelemetryConf: {}
     };
 
     expect(() => initSDK(mockApp, options)).toThrow('OTLP endpoint is required');
