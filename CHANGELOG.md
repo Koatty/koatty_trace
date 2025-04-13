@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.15.0](https://github.com/koatty/koatty_trace/compare/v1.14.1...v1.15.0) (2025-04-13)
+
+
+### Features
+
+* add GraphQL handler and compression support with brotli-wasm for HTTP/gRPC responses ([32464e6](https://github.com/koatty/koatty_trace/commit/32464e602fc575e5155508ef4c975189b7027a5e))
+* add topology analysis, circuit breaker and span manager for enhanced tracing capabilities ([70699c9](https://github.com/koatty/koatty_trace/commit/70699c9df32bfff16d8cc2498cace45c82de8d8f))
+* enhance OpenTelemetry tracing with batch processing, retry exporter and span timeout ([1fca9bf](https://github.com/koatty/koatty_trace/commit/1fca9bf71f62277abb75a60344d0743dadd4598a))
+* implement Logger and SpanManager classes for enhanced OpenTelemetry logging and tracing ([fb9a210](https://github.com/koatty/koatty_trace/commit/fb9a210e094806c5dfaf869c757c6de425059117))
+
 ### [1.14.1](https://github.com/koatty/koatty_trace/compare/v1.14.0...v1.14.1) (2025-04-02)
 
 ## [1.14.0](https://github.com/koatty/koatty_trace/compare/v1.13.1...v1.14.0) (2025-04-01)
