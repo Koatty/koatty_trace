@@ -15,7 +15,10 @@ describe('gRPCHandler', () => {
       requestId: 'test-request-id',
       rpc: {
         call: {
-          metadata: { getMap: () => metadata },
+          metadata: { 
+            getMap: () => metadata,
+            get: (key: string) => [metadata[key]]
+          },
           sendMetadata: jest.fn(),
           callback: jest.fn(),
           getPath: jest.fn().mockReturnValue('/test'),
@@ -113,12 +116,12 @@ describe('gRPCHandler', () => {
     };
     (zlib.createGzip as jest.Mock).mockReturnValue(mockGzip);
     
-    const ctx = createMockContext();
+    const ctx = createMockContext({ 'accept-encoding': 'gzip' });
     ctx.body = mockStream;
     const next = jest.fn();
     const handler = GrpcHandler.getInstance();
     
-    await handler.handle(ctx, next, { compression: 'gzip' });
+    await handler.handle(ctx, next, {});
     expect(zlib.createGzip).toHaveBeenCalled();
     // 验证流被正确处理
     expect(ctx.body).toBe(mockGzip);
@@ -139,12 +142,12 @@ describe('gRPCHandler', () => {
     };
     (zlib.createBrotliCompress as jest.Mock).mockReturnValue(mockBrotli);
     
-    const ctx = createMockContext();
+    const ctx = createMockContext({ 'accept-encoding': 'br' });
     ctx.body = mockStream;
     const next = jest.fn();
     const handler = GrpcHandler.getInstance();
     
-    await handler.handle(ctx, next, { compression: 'br' });
+    await handler.handle(ctx, next, {});
     expect(zlib.createBrotliCompress).toHaveBeenCalled();
     // 验证流被正确处理
     expect(ctx.body).toBe(mockBrotli);

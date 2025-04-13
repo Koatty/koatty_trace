@@ -17,7 +17,6 @@ describe('WsHandler', () => {
     
     mockExt = {
       timeout: 1000,
-      compression: 'none',
       spanManager: {
         getSpan: jest.fn().mockReturnValue({
           spanContext: () => ({ traceId: 'mock-trace-id', spanId: 'mock-span-id' }),
@@ -55,6 +54,9 @@ describe('WsHandler', () => {
       requestId: 'test-request-id',
       originalPath: '/test',
       headers: {},
+      req: {
+        headers: {}
+      },
       websocket: {
         send: jest.fn(),
         close: jest.fn(),
@@ -90,7 +92,7 @@ describe('WsHandler', () => {
     it('should handle successful request', async () => {
       await handler.handle(mockCtx, mockNext, mockExt);
       expect(mockNext).toHaveBeenCalled();
-      expect(mockCtx.websocket.send).toHaveBeenCalledWith(inspect('test response'), null);
+      expect(mockCtx.websocket.send).toHaveBeenCalledWith(inspect('test response'), {});
     });
 
     it('should handle timeout error', async () => {
@@ -104,7 +106,7 @@ describe('WsHandler', () => {
     it('should handle JSON response', async () => {
       mockCtx.body = { key: 'value' };
       await handler.handle(mockCtx, mockNext, mockExt);
-      expect(mockCtx.websocket.send).toHaveBeenCalledWith(inspect({ key: 'value' }), null);
+      expect(mockCtx.websocket.send).toHaveBeenCalledWith(inspect({ key: 'value' }), {});
     });
 
     it('should handle error without closing connection', async () => {
@@ -140,6 +142,20 @@ describe('WsHandler', () => {
       mockCtx.websocket.readyState = 2; // CLOSING
       await handler.handle(mockCtx, mockNext, mockExt);
       expect(mockCtx.websocket.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('compression', () => {
+    it('should enable compression when sec-websocket-extensions includes permessage-deflate', async () => {
+      mockCtx.req = { headers: { 'sec-websocket-extensions': 'permessage-deflate' } };
+      await handler.handle(mockCtx, mockNext, mockExt);
+      expect(mockCtx.websocket.send).toHaveBeenCalledWith(inspect('test response'), expect.objectContaining({ compress: true }));
+    });
+
+    it('should not enable compression when no sec-websocket-extensions header', async () => {
+      mockCtx.req = { headers: {} };
+      await handler.handle(mockCtx, mockNext, mockExt);
+      expect(mockCtx.websocket.send).toHaveBeenCalledWith(inspect('test response'), expect.not.objectContaining({ compress: true }));
     });
   });
 });
