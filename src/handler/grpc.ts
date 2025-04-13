@@ -47,7 +47,9 @@ export class GrpcHandler extends BaseHandler implements Handler {
 
   async handle(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
     const timeout = ext.timeout || 10000;
-    const compression = ext.compression || 'none'; // none|gzip|brotli
+    const acceptEncoding = ctx.rpc.call.metadata.get('accept-encoding')[0] || '';
+    const compression = acceptEncoding.includes('br') ? 'brotli' : 
+                      acceptEncoding.includes('gzip') ? 'gzip' : 'none';
 
     ctx?.rpc?.call?.sendMetadata(ctx.rpc.call.metadata);
 
@@ -91,12 +93,12 @@ export class GrpcHandler extends BaseHandler implements Handler {
         throw new Exception(ctx.message, 0, ctx.status);
       }
 
-      // 仅处理响应流压缩
+      // Handle response stream compression
       if (compression !== 'none' && ctx.body instanceof Stream) {
         const compressStream = compression === 'gzip' ? 
-          zlib.createGzip({ level: 6 }) : zlib.createBrotliCompress({ 
-            params: { 
-              [zlib.constants.BROTLI_PARAM_QUALITY]: 4 
+          zlib.createGzip({ level: 6 }) : zlib.createBrotliCompress({
+            params: {
+              [zlib.constants.BROTLI_PARAM_QUALITY]: 4
             }
           });
         ctx.body = ctx.body.pipe(compressStream);

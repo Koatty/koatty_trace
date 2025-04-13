@@ -11,10 +11,6 @@
 import { KoattyContext } from "koatty_core";
 import { Exception } from "koatty_exception";
 import { DefaultLogger as Logger } from "koatty_logger";
-import { Span } from "@opentelemetry/api";
-import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
-import { Readable } from 'stream';
-import { catcher } from "../trace/catcher";
 import { BaseHandler, Handler } from "./base";
 import { extensionOptions } from "../trace/itrace";
 import { respond } from "./respond";

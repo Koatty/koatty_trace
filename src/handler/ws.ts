@@ -34,6 +34,8 @@ export class WsHandler extends BaseHandler implements Handler {
 
   async handle(ctx: KoattyContext, next: Function, ext?: extensionOptions): Promise<any> {
     const timeout = ext?.timeout || 10000;
+    const wsExtensions = ctx.req.headers['sec-websocket-extensions'] || '';
+    const useCompression = wsExtensions.includes('permessage-deflate');
     
     this.commonPreHandle(ctx, ext);
     ctx?.res?.once("finish", () => {
@@ -70,7 +72,8 @@ export class WsHandler extends BaseHandler implements Handler {
       
       // Only send if connection is open and body exists
       if (ctx?.websocket?.readyState === 1 && !Helper.isTrueEmpty(ctx.body)) {
-        ctx.websocket.send(inspect(ctx.body), null);
+        const sendOptions = useCompression ? { compress: true } : {};
+        ctx.websocket.send(inspect(ctx.body), sendOptions);
       }
       return null;
     } catch (err: any) {
