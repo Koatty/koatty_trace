@@ -25,31 +25,135 @@ import { getRequestId, getTraceId } from './utils';
  * defaultOptions
  */
 const defaultOptions = {
-  timeout: 10000, // response timeout in milliseconds
+  // response timeout in milliseconds
+  timeout: 10000,
+  // request id header name
   requestIdHeaderName: 'X-Request-Id',
+  // request id name
   requestIdName: "requestId",
+  // id factory function
   idFactory: getTraceId,
+  // encoding
   encoding: 'utf-8',
+  // Whether to enable trace (default: false)
   enableTrace: false,
-  enableTopology: false, // Default to same as enableTrace
+  // asynchooks enabled
   asyncHooks: false,
-  otlpEndpoint: "http://localhost:4318/v1/traces",
-  otlpHeaders: {},
-  otlpTimeout: 10000,
-  spanTimeout: 30000,
-  samplingRate: 1.0,
-  batchMaxQueueSize: 2048,
-  batchMaxExportSize: 512,
-  batchDelayMillis: 5000,
-  batchExportTimeout: 30000,
-  retryConf: {
-    enabled: false,
-    count: 3,
-    interval: 1000
-  },
+  /**
+   * Metrics configuration
+   */
   metricsConf: {
-    defaultAttributes: {}
-  }
+    /**
+     * Metrics reporter function
+     */
+    // reporter: (metrics: {
+    //   duration: number,
+    //   status: number,
+    //   path: string,
+    //   attributes: Record<string, any>,
+    // }) => void,
+    /**
+     * Default attributes for metrics
+     */
+    defaultAttributes: {},
+    /**
+     * Prometheus metrics endpoint (production only)
+     */
+    metricsEndpoint: '/metrics',
+    /**
+     * Metrics report interval in milliseconds (default: 5000)
+     */
+    reportInterval: 5000,
+    /**
+     * Prometheus metrics port (default: 9464)
+     */
+    metricsPort: 9464,
+  },
+
+  /**
+   * OpenTelemetry configuration
+   */
+  opentelemetryConf: {
+    /**
+     * OTLP endpoint URL
+     */
+    endpoint: "http://localhost:4318/v1/traces",
+    /**
+     * Whether to enable topology analysis (default: same as enableTrace)
+     * 
+     */
+    enableTopology: false,
+    /**
+     * OTLP headers
+     */
+    headers: {},
+    /**
+     * Resource attributes
+     */
+    resourceAttributes: {},
+    /**
+     * Instrumentations to enable
+     */
+    instrumentations: [] as any,
+    /**
+     * Exporter timeout in milliseconds
+     */
+    timeout: 10000,
+    /**
+     * Maximum lifetime for a span in milliseconds
+     */
+    spanTimeout: 30000,
+    /**
+     * Maximum number of active spans in memory (default: 1000)
+     */
+    maxActiveSpans: 1000,
+    /**
+     * Request attributes to be added to the span
+     */
+    // spanAttributes: (ctx: KoattyContext) => Record<string, any>,
+
+    /**
+     * Sampling rate (0.0 - 1.0)
+     */
+    samplingRate: 1.0,
+    /**
+     * Maximum number of spans in batch queue
+     */
+    batchMaxQueueSize: 2048,
+    /**
+     * Maximum number of spans to export in one batch
+     */
+    batchMaxExportSize: 512,
+    /**
+     * Delay between batch exports in milliseconds
+     */
+    batchDelayMillis: 5000,
+    /**
+     * Timeout for batch export in milliseconds
+     */
+    batchExportTimeout: 30000,
+  },
+  /**
+   * Retry configuration
+   */
+  retryConf: {
+    /**
+     * Whether to enable retry mechanism (default: false)
+     */
+    enabled: false,
+    /**
+     * Max retry count when error occurs (default: 3)
+     */
+    count: 3,
+    /**
+     * Retry interval in milliseconds (default: 1000)
+     */
+    interval: 1000,
+    /**
+     * Custom function to determine if error should be retried
+     */
+    // conditions: (error: any) => boolean,
+  },
 };
 
 /**
@@ -110,7 +214,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
     }
 
     // Record topology if enabled
-    if (options.enableTopology ?? options.enableTrace) {
+    if (options.opentelemetryConf?.enableTopology ?? options.enableTrace) {
       const topology = TopologyAnalyzer.getInstance();
       const serviceName = Array.isArray(ctx.headers['service'])
         ? ctx.headers['service'][0]

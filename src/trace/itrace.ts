@@ -19,12 +19,19 @@ import { SpanManager } from '../opentelemetry/spanManager';
  * @interface TraceOptions
  */
 export interface TraceOptions {
-  timeout?: number; // response timeout
+  // response timeout in milliseconds
+  timeout?: number; 
+  // request id header name
   requestIdHeaderName?: string;
+  // request id name
   requestIdName?: string;
+  // id factory function
   idFactory?: Function;
+  // encoding
   encoding?: string;
+  // Whether to enable trace (default: false)
   enableTrace?: boolean;
+  // Whether to enable topology analysis (default: same as enableTrace)
   asyncHooks?: boolean;
   /**
    * Metrics configuration
@@ -43,6 +50,18 @@ export interface TraceOptions {
      * Default attributes for metrics
      */
     defaultAttributes?: Record<string, any>;
+    /**
+     * Prometheus metrics endpoint (production only)
+     */
+    metricsEndpoint?: string;
+    /**
+     * Metrics report interval in milliseconds (default: 5000)
+     */
+    reportInterval?: number;
+    /**
+     * Prometheus metrics port (default: 9464)
+     */
+    metricsPort?: number;
   };
   
   /**
@@ -53,6 +72,11 @@ export interface TraceOptions {
      * OTLP endpoint URL
      */
     endpoint?: string;
+    /**
+     * Whether to enable topology analysis (default: same as enableTrace)
+     * 
+     */
+    enableTopology?: boolean;
     /**
      * OTLP headers
      */
@@ -74,8 +98,12 @@ export interface TraceOptions {
      */
     spanTimeout?: number;
     /**
-   * Request attributes to be added to the span
-   */
+     * Maximum number of active spans in memory (default: 1000)
+     */
+    maxActiveSpans?: number;
+    /**
+     * Request attributes to be added to the span
+     */
     spanAttributes?: (ctx: KoattyContext) => Record<string, any>;
 
     /**
@@ -99,10 +127,6 @@ export interface TraceOptions {
      */
     batchExportTimeout?: number;
   };
-  /**
-   * Whether to enable topology analysis (default: same as enableTrace)
-   */
-  enableTopology?: boolean;
   /**
    * Retry configuration
    */

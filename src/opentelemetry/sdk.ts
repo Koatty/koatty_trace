@@ -11,6 +11,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { diag, DiagLogLevel, trace } from '@opentelemetry/api';
+import { initPrometheusExporter } from './prometheus';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { Koatty } from 'koatty_core';
 import { TraceOptions } from '../trace/itrace';
@@ -18,6 +19,9 @@ import { DefaultLogger as logger } from "koatty_logger";
 import { Logger } from './logger';
 import { RetryOTLPTraceExporter } from './exporter';
 import { createResourceAttributes } from './resource';
+
+// Global flag to track if logger has been set
+let isLoggerSet = false;
 
 /**
  * Initialize OpenTelemetry SDK
@@ -44,15 +48,21 @@ export function initSDK(app: Koatty, options: TraceOptions) {
     exportTimeoutMillis: options.opentelemetryConf?.batchExportTimeout
   };
 
-  // Configure logging
-  // const logLevel = logger.getLevel();
-  // const diagLogLevel = Object.values(DiagLogLevel).find(
-  //   (level) => level.toString() === logLevel.toString()
-  // ) || DiagLogLevel.INFO;
+  // Configure logging - only set once
+  if (!isLoggerSet) {
+    const logLevel = logger.getLevel();
+    const diagLogLevel = Object.values(DiagLogLevel).find(
+      (level) => level.toString() === logLevel.toString()
+    ) || DiagLogLevel.INFO;
 
-  // diag.setLogger(new Logger(), diagLogLevel as DiagLogLevel);
+    diag.setLogger(new Logger(), diagLogLevel as DiagLogLevel);
+    isLoggerSet = true;
+  }
 
-  return new NodeSDK({
+  // Initialize Prometheus exporter
+  const prometheusExporter = initPrometheusExporter(app, options);
+
+  const sdkConfig: any = {
     resource: createResourceAttributes(app, options),
     traceExporter,
     spanProcessors: [new BatchSpanProcessor(traceExporter, batchOptions)],
@@ -66,7 +76,14 @@ export function initSDK(app: Koatty, options: TraceOptions) {
         }
       })
     ]
-  });
+  };
+  
+  // Enable Prometheus exporter
+  if (prometheusExporter) {
+    sdkConfig.readers = [prometheusExporter];
+  }
+
+  return new NodeSDK(sdkConfig);
 }
 
 /**

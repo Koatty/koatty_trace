@@ -73,7 +73,8 @@ describe('opentelemetry.ts', () => {
         endpoint: 'http://custom-endpoint:4318/v1/traces',
         headers: { 'x-api-key': 'test-key' },
         timeout: 5000,
-        resourceAttributes: { 'custom.attribute': 'value' }
+        resourceAttributes: { 'custom.attribute': 'value' },
+        maxActiveSpans: 500
       },
       enableTrace: true
     };

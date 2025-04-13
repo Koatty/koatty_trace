@@ -9,7 +9,7 @@ import { TraceOptions } from "../trace/itrace";
  * Manages span lifecycle and operations
  */
 export class SpanManager {
-  private activeSpans = new Map<string, { span: Span, timer: NodeJS.Timeout }>();
+  private activeSpans = new Map<string, { span: Span, timer: NodeJS.Timeout, createdAt: number }>();
   private span: Span | undefined;
   private readonly propagator: W3CTraceContextPropagator;
   private readonly options: NonNullable<TraceOptions['opentelemetryConf']>;
@@ -19,9 +19,34 @@ export class SpanManager {
     this.options = {
       spanTimeout: 30000,
       samplingRate: 1.0,
+      maxActiveSpans: 1000,
       spanAttributes: undefined,
       ...options.opentelemetryConf
     };
+  }
+
+  private checkMemoryLimit() {
+    if (this.options.maxActiveSpans && this.activeSpans.size >= this.options.maxActiveSpans) {
+      // Find oldest span by createdAt timestamp
+      let oldestKey = '';
+      let oldestTime = Date.now();
+      for (const [key, value] of this.activeSpans) {
+        if (value.createdAt < oldestTime) {
+          oldestTime = value.createdAt;
+          oldestKey = key;
+        }
+      }
+      // Remove oldest span
+      if (oldestKey) {
+        const entry = this.activeSpans.get(oldestKey);
+        if (entry) {
+          clearTimeout(entry.timer);
+          entry.span.end();
+          this.activeSpans.delete(oldestKey);
+          logger.warn(`Span memory limit reached, removed oldest span: ${oldestKey}`);
+        }
+      }
+    }
   }
 
   createSpan(tracer: Tracer, ctx: KoattyContext, serviceName: string): Span | undefined {
@@ -48,18 +73,29 @@ export class SpanManager {
     if (!this.options.spanTimeout || !this.span) return;
 
     const traceId = this.span.spanContext().traceId;
-    const timer = setTimeout(() => {
-      const entry = this.activeSpans.get(traceId);
-      if (entry) {
-        logger.warn(`Span timeout after ${this.options.spanTimeout}ms`, {
-          traceId
-        });
+    let timer: NodeJS.Timeout | null = null;
+    
+    try {
+      timer = setTimeout(() => {
+        const entry = this.activeSpans.get(traceId);
+        if (!entry) return;
+        
+        logger.warn(`Span timeout after ${this.options.spanTimeout}ms`, { traceId });
         entry.span.end();
         this.activeSpans.delete(traceId);
-      }
-    }, this.options.spanTimeout);
+      }, this.options.spanTimeout);
 
-    this.activeSpans.set(traceId, { span: this.span, timer });
+      this.checkMemoryLimit();
+      this.activeSpans.set(traceId, { 
+        span: this.span, 
+        timer,
+        createdAt: Date.now() 
+      });
+    } catch (err) {
+      if (timer) clearTimeout(timer);
+      logger.error('Failed to setup span timeout:', err);
+      throw err;
+    }
   }
 
   injectContext(ctx: KoattyContext) {
@@ -101,10 +137,12 @@ export class SpanManager {
   }
 
   endSpan() {
+    if (!this.span) return;
+    
+    const traceId = this.span.spanContext().traceId;
+    const entry = this.activeSpans.get(traceId);
+    
     try {
-      if (!this.span) return;
-      const traceId = this.span.spanContext().traceId;
-      const entry = this.activeSpans.get(traceId);
       if (entry) {
         clearTimeout(entry.timer);
         this.activeSpans.delete(traceId);
