@@ -20,73 +20,111 @@ import { SpanManager } from '../opentelemetry/spanManager';
  */
 export interface TraceOptions {
   timeout?: number; // response timeout
-  /**
-   * Request attributes to be added to the span
-   */
-  spanAttributes?: (ctx: KoattyContext) => Record<string, any>;
-  /**
-   * Metrics reporter function
-   */
-  metricsReporter?: (metrics: {
-    duration: number;
-    status: number;
-    path: string;
-    attributes: Record<string, any>;
-  }) => void;
   requestIdHeaderName?: string;
   requestIdName?: string;
   idFactory?: Function;
   encoding?: string;
   enableTrace?: boolean;
   asyncHooks?: boolean;
-  otlpEndpoint?: string;
-  otlpHeaders?: Record<string, string>;
   /**
-   * Custom resource attributes for OpenTelemetry
+   * Metrics configuration
    */
-  otlpResourceAttributes?: Record<string, string>;
+  metricsConf?: {
+    /**
+     * Metrics reporter function
+     */
+    reporter?: (metrics: {
+      duration: number;
+      status: number;
+      path: string;
+      attributes: Record<string, any>;
+    }) => void;
+    /**
+     * Default attributes for metrics
+     */
+    defaultAttributes?: Record<string, any>;
+  };
+  
   /**
-   * OpenTelemetry instrumentations to enable
+   * OpenTelemetry configuration
    */
-  otlpInstrumentations?: Instrumentation[];
-  /**
-   * OTLP exporter timeout in milliseconds
+  opentelemetryConf?: {
+    /**
+     * OTLP endpoint URL
+     */
+    endpoint?: string;
+    /**
+     * OTLP headers
+     */
+    headers?: Record<string, string>;
+    /**
+     * Resource attributes
+     */
+    resourceAttributes?: Record<string, string>;
+    /**
+     * Instrumentations to enable
+     */
+    instrumentations?: Instrumentation[];
+    /**
+     * Exporter timeout in milliseconds
+     */
+    timeout?: number;
+    /**
+     * Maximum lifetime for a span in milliseconds
+     */
+    spanTimeout?: number;
+    /**
+   * Request attributes to be added to the span
    */
-  otlpTimeout?: number;
+    spanAttributes?: (ctx: KoattyContext) => Record<string, any>;
+
+    /**
+     * Sampling rate (0.0 - 1.0)
+     */
+    samplingRate?: number;
+    /**
+     * Maximum number of spans in batch queue
+     */
+    batchMaxQueueSize?: number;
+    /**
+     * Maximum number of spans to export in one batch
+     */
+    batchMaxExportSize?: number;
+    /**
+     * Delay between batch exports in milliseconds
+     */
+    batchDelayMillis?: number;
+    /**
+     * Timeout for batch export in milliseconds
+     */
+    batchExportTimeout?: number;
+  };
   /**
-   * Maximum lifetime for a span in milliseconds (default: 30000)
-   */
-  spanTimeout?: number;
-  /**
-   * Sampling rate for spans (0.0 - 1.0)
-   */
-  /**
-   * 采样率 (0.0 - 1.0)
-   */
-  samplingRate?: number;
-  /**
-   * Maximum number of spans in batch queue (default: 2048)
-   */
-  batchMaxQueueSize?: number;
-  /**
-   * Maximum number of spans to export in one batch (default: 512)
-   */
-  batchMaxExportSize?: number;
-  /**
-   * Delay in milliseconds between batch exports (default: 5000)
-   */
-  batchDelayMillis?: number;
-  /**
-   * Timeout in milliseconds for batch export (default: 30000)
-   */
-  batchExportTimeout?: number;
-  /**
-   * Whether to enable topology (default: false)
-   * @default false
+   * Whether to enable topology analysis (default: same as enableTrace)
    */
   enableTopology?: boolean;
+  /**
+   * Retry configuration
+   */
+  retryConf?: {
+    /**
+     * Whether to enable retry mechanism (default: false)
+     */
+    enabled?: boolean;
+    /**
+     * Max retry count when error occurs (default: 3)
+     */
+    count?: number;
+    /**
+     * Retry interval in milliseconds (default: 1000)
+     */
+    interval?: number;
+    /**
+     * Custom function to determine if error should be retried
+     */
+    conditions?: (error: any) => boolean;
+  };
 }
-
 
 /**
  * @description: extensionOptions

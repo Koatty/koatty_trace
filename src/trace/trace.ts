@@ -31,7 +31,7 @@ const defaultOptions = {
   idFactory: getTraceId,
   encoding: 'utf-8',
   enableTrace: false,
-  enableTopology: false,
+  enableTopology: false, // Default to same as enableTrace
   asyncHooks: false,
   otlpEndpoint: "http://localhost:4318/v1/traces",
   otlpHeaders: {},
@@ -41,7 +41,15 @@ const defaultOptions = {
   batchMaxQueueSize: 2048,
   batchMaxExportSize: 512,
   batchDelayMillis: 5000,
-  batchExportTimeout: 30000
+  batchExportTimeout: 30000,
+  retryConf: {
+    enabled: false,
+    count: 3,
+    interval: 1000
+  },
+  metricsConf: {
+    defaultAttributes: {}
+  }
 };
 
 /**
@@ -68,7 +76,7 @@ export function Trace(options: TraceOptions, app: Koatty) {
 
   let spanManager: SpanManager | undefined;
   let tracer: any;
-  
+
   if (options.enableTrace) {
     spanManager = app.getMetaData("spanManager")[0] || new SpanManager(options);
     tracer = app.getMetaData("tracer")[0] || initSDK(app, options);
@@ -96,10 +104,13 @@ export function Trace(options: TraceOptions, app: Koatty) {
     if (options.enableTrace && tracer) {
       const serviceName = app.name || "unknownKoattyProject";
       spanManager.createSpan(tracer, ctx, serviceName);
+      app.once(AppEvent.appStop, () => {
+        spanManager?.endSpan();
+      })
     }
 
     // Record topology if enabled
-    if (options.enableTopology) {
+    if (options.enableTopology ?? options.enableTrace) {
       const topology = TopologyAnalyzer.getInstance();
       const serviceName = Array.isArray(ctx.headers['service'])
         ? ctx.headers['service'][0]
@@ -154,24 +165,52 @@ async function handleRequest(
   ext: extensionOptions
 ) {
   const startTime = performance.now();
-  try {
-    const result = await respWarper(ctx, next, options, ext);
-    
-    if (options.metricsReporter && ext.spanManager) {
-      options.metricsReporter({
-        duration: performance.now() - startTime,
-        status: ctx.status || 200,
-        path: ctx.path,
-        attributes: {}
-      });
+  let result;
+  const retryConf = options.retryConf || { enabled: false };
+
+  if (retryConf.enabled) {
+    const maxRetries = retryConf.count || 3;
+    const interval = retryConf.interval || 1000;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        result = await respWarper(ctx, next, options, ext);
+        break;
+      } catch (error) {
+        // Check if error should be retried
+        const shouldRetry = retryConf.conditions
+          ? retryConf.conditions(error)
+          : true;
+
+        if (!shouldRetry || attempt === maxRetries) {
+          throw error;
+        }
+
+        // Wait before next retry
+        if (interval > 0) {
+          await new Promise(resolve => setTimeout(resolve, interval));
+        }
+      }
     }
-    
-    return result;
-  } finally {
-    if (ext.spanManager) {
-      ext.spanManager.endSpan();
-    }
+  } else {
+    result = await respWarper(ctx, next, options, ext);
   }
+
+  // Report metrics after request processing is complete
+  const metricsConf = options.metricsConf || {};
+  if (metricsConf.reporter && ext.spanManager) {
+    metricsConf.reporter({
+      duration: performance.now() - startTime,
+      status: ctx.status || 200,
+      path: ctx.path,
+      attributes: {
+        ...(metricsConf.defaultAttributes || {}),
+        // add other attributes here
+      }
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -190,28 +229,23 @@ async function respWarper(
   options: TraceOptions,
   ext: extensionOptions
 ) {
-  try {
-    if (options.requestIdName && ctx.setMetaData) {
-      ctx.setMetaData(options.requestIdName, ctx.requestId);
-    }
-
-    const protocol = (ctx?.protocol || "http").toLowerCase();
-    if (protocol === "grpc" || protocol === "ws" || protocol === "wss") {
-      ctx.respond = false;
-    }
-
-    if (options.requestIdHeaderName) {
-      ctx.set(options.requestIdHeaderName, ctx.requestId);
-    }
-
-    if (ctx.rpc?.call?.metadata && options.requestIdName) {
-      ctx.rpc.call.metadata.set(options.requestIdName, ctx.requestId);
-    }
-
-    const handler = HandlerFactory.getHandler(protocol as ProtocolType);
-    return await handler.handle(ctx, next, ext);
-  } catch (e) {
-    ext.terminated = true;
-    throw e;
+  if (options.requestIdName && ctx.setMetaData) {
+    ctx.setMetaData(options.requestIdName, ctx.requestId);
   }
+
+  const protocol = (ctx?.protocol || "http").toLowerCase();
+  if (protocol === "grpc" || protocol === "ws" || protocol === "wss") {
+    ctx.respond = false;
+  }
+
+  if (options.requestIdHeaderName) {
+    ctx.set(options.requestIdHeaderName, ctx.requestId);
+  }
+
+  if (ctx.rpc?.call?.metadata && options.requestIdName) {
+    ctx.rpc.call.metadata.set(options.requestIdName, ctx.requestId);
+  }
+
+  const handler = HandlerFactory.getHandler(protocol as ProtocolType);
+  return handler.handle(ctx, next, ext);
 }

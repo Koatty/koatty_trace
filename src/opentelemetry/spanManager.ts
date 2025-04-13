@@ -12,13 +12,20 @@ export class SpanManager {
   private activeSpans = new Map<string, { span: Span, timer: NodeJS.Timeout }>();
   private span: Span | undefined;
   private readonly propagator: W3CTraceContextPropagator;
+  private readonly options: NonNullable<TraceOptions['opentelemetryConf']>;
 
-  constructor(private options: TraceOptions) {
+  constructor(options: TraceOptions) {
     this.propagator = new W3CTraceContextPropagator();
+    this.options = {
+      spanTimeout: 30000,
+      samplingRate: 1.0,
+      spanAttributes: undefined,
+      ...options.opentelemetryConf
+    };
   }
 
   createSpan(tracer: Tracer, ctx: KoattyContext, serviceName: string): Span | undefined {
-    const shouldSample = Math.random() < (this.options.samplingRate ?? 1.0);
+    const shouldSample = Math.random() < this.options.samplingRate;
     if (!shouldSample) return undefined;
 
     if (!tracer.startSpan) {
@@ -77,7 +84,7 @@ export class SpanManager {
     if (this.options.spanAttributes) {
       const customAttrs = this.options.spanAttributes(ctx);
       Object.entries(customAttrs).forEach(([key, value]) => {
-        this.span.setAttribute(key, value);
+        this.span?.setAttribute(key, value);
       });
     }
   }
@@ -94,13 +101,17 @@ export class SpanManager {
   }
 
   endSpan() {
-    if (!this.span) return;
-    const traceId = this.span.spanContext().traceId;
-    const entry = this.activeSpans.get(traceId);
-    if (entry) {
-      clearTimeout(entry.timer);
-      this.activeSpans.delete(traceId);
+    try {
+      if (!this.span) return;
+      const traceId = this.span.spanContext().traceId;
+      const entry = this.activeSpans.get(traceId);
+      if (entry) {
+        clearTimeout(entry.timer);
+        this.activeSpans.delete(traceId);
+      }
+      this.span.end();
+    } catch (error) {
+      logger.error("SpanManager.endSpan error:", error);
     }
-    this.span.end();
   }
 }

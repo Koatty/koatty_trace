@@ -23,24 +23,25 @@ import { createResourceAttributes } from './resource';
  * Initialize OpenTelemetry SDK
  */
 export function initSDK(app: Koatty, options: TraceOptions) {
-  const endpoint = options.otlpEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  const endpoint = options.opentelemetryConf?.endpoint ||
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   if (!endpoint) {
     throw new Error('OTLP endpoint is required');
   }
 
   const traceExporter = new RetryOTLPTraceExporter({
     url: endpoint,
-    headers: options.otlpHeaders || {},
-    timeoutMillis: options.otlpTimeout || 10000,
+    headers: options.opentelemetryConf?.headers || {},
+    timeoutMillis: options.opentelemetryConf?.timeout || 10000,
     maxRetries: 3,
     retryDelay: 1000
   });
 
   const batchOptions = {
-    maxQueueSize: options.batchMaxQueueSize,
-    maxExportBatchSize: options.batchMaxExportSize,
-    scheduledDelayMillis: options.batchDelayMillis,
-    exportTimeoutMillis: options.batchExportTimeout
+    maxQueueSize: options.opentelemetryConf?.batchMaxQueueSize,
+    maxExportBatchSize: options.opentelemetryConf?.batchMaxExportSize,
+    scheduledDelayMillis: options.opentelemetryConf?.batchDelayMillis,
+    exportTimeoutMillis: options.opentelemetryConf?.batchExportTimeout
   };
 
   // Configure logging
@@ -48,14 +49,14 @@ export function initSDK(app: Koatty, options: TraceOptions) {
   // const diagLogLevel = Object.values(DiagLogLevel).find(
   //   (level) => level.toString() === logLevel.toString()
   // ) || DiagLogLevel.INFO;
-  
+
   // diag.setLogger(new Logger(), diagLogLevel as DiagLogLevel);
 
   return new NodeSDK({
     resource: createResourceAttributes(app, options),
     traceExporter,
     spanProcessors: [new BatchSpanProcessor(traceExporter, batchOptions)],
-    instrumentations: options.otlpInstrumentations || [
+    instrumentations: options.opentelemetryConf?.instrumentations || [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-grpc': {
           enabled: true,
@@ -91,7 +92,7 @@ export async function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptio
       stack: err.stack,
       code: err.code,
       config: {
-        endpoint: options.otlpEndpoint,
+        endpoint: options.opentelemetryConf?.endpoint,
         serviceName: app.name
       }
     });
