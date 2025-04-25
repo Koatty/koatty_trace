@@ -19,10 +19,12 @@ import {
 } from "@opentelemetry/semantic-conventions";
 
 /**
- * Create OpenTelemetry resource attributes
- * @param app Koatty application instance
- * @param options Trace configuration options
- * @returns Configured resource attributes
+ * Creates resource attributes for OpenTelemetry instrumentation
+ * 
+ * @param {Koatty} app - The Koatty application instance
+ * @param {any} options - Configuration options containing optional otlpResourceAttributes
+ * @returns {Resource} OpenTelemetry resource with configured attributes
+ * @throws {Error} When service name is not provided
  */
 export function createResourceAttributes(app: Koatty, options: any) {
   const serviceName = process.env.OTEL_SERVICE_NAME || app.name;

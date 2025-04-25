@@ -16,7 +16,18 @@ import { DefaultLogger as logger } from "koatty_logger";
 import { TraceOptions } from "../trace/itrace";
 
 /**
- * Manages span lifecycle and operations
+ * SpanManager class for managing OpenTelemetry spans in a Koatty application.
+ * Handles span creation, context propagation, attributes management, and cleanup.
+ * 
+ * Features:
+ * - Automatic span timeout management
+ * - Memory limit control for active spans
+ * - Sampling rate configuration
+ * - W3C trace context propagation
+ * - Custom span attributes support
+ * 
+ * @class SpanManager
+ * @exports
  */
 export class SpanManager {
   private activeSpans = new Map<string, { span: Span, timer: NodeJS.Timeout, createdAt: number }>();

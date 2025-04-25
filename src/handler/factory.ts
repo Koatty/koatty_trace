@@ -14,11 +14,16 @@ import { GrpcHandler } from './grpc';
 import { WsHandler } from './ws';
 
 
+/**
+ * Factory class for managing protocol handlers.
+ * Provides registration and retrieval of handlers for different protocol types (HTTP, GRPC, WS).
+ * Initializes with default handlers and supports fallback to HTTP handler.
+ */
 export class HandlerFactory {
   private static handlers = new Map<ProtocolType, Handler>();
 
   /**
-   * 初始化默认处理器
+   * Initialize with default handlers.
    */
   static {
     this.register(ProtocolType.HTTP, HttpHandler.getInstance());
@@ -27,18 +32,18 @@ export class HandlerFactory {
   }
 
   /**
-   * 注册协议处理器
-   * @param type 协议类型 
-   * @param handler 处理器实例
+   * register a handler for a protocol type.
+   * @param type 
+   * @param handler 
    */
   static register(type: ProtocolType, handler: Handler) {
     this.handlers.set(type, handler);
   }
 
   /**
-   * 获取协议处理器
-   * @param type 协议类型
-   * @returns 对应的处理器实例
+   * get a handler for a protocol type.
+   * @param type 
+   * @returns 
    */
   static getHandler(type: ProtocolType): Handler {
     const handler = this.handlers.get(type);

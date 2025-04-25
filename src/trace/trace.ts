@@ -19,7 +19,7 @@ import { asyncLocalStorage, createAsyncResource, wrapEmitter } from './wrap';
 import { extensionOptions, TraceOptions } from "./itrace";
 import { initSDK, startTracer } from "../opentelemetry/sdk";
 import { TopologyAnalyzer } from "../opentelemetry/topology";
-import { getRequestId, getTraceId } from './utils';
+import { getRequestId, getTraceId } from '../utils/utils';
 
 /** 
  * defaultOptions

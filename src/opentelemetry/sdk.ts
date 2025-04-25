@@ -24,7 +24,21 @@ import { createResourceAttributes } from './resource';
 let isLoggerSet = false;
 
 /**
- * Initialize OpenTelemetry SDK
+ * Initialize OpenTelemetry SDK with trace and metrics exporters
+ * 
+ * @param app - Koatty application instance
+ * @param options - Configuration options for tracing
+ * @returns NodeSDK instance configured with trace exporters and instrumentations
+ * @throws Error if OTLP endpoint is not provided
+ * 
+ * @example
+ * ```typescript
+ * const sdk = initSDK(app, {
+ *   opentelemetryConf: {
+ *     endpoint: 'http://localhost:4318/v1/traces'
+ *   }
+ * });
+ * ```
  */
 export function initSDK(app: Koatty, options: TraceOptions) {
   const endpoint = options.opentelemetryConf?.endpoint ||
@@ -87,7 +101,17 @@ export function initSDK(app: Koatty, options: TraceOptions) {
 }
 
 /**
- * Start OpenTelemetry tracer
+ * Start and initialize OpenTelemetry SDK tracer
+ * 
+ * @param sdk - OpenTelemetry NodeSDK instance
+ * @param app - Koatty application instance
+ * @param options - Trace configuration options
+ * 
+ * @remarks
+ * This function initializes the OpenTelemetry SDK and sets up shutdown handlers.
+ * If initialization fails, it falls back to BasicTracerProvider.
+ * 
+ * @throws Error when SDK initialization fails
  */
 export async function startTracer(sdk: NodeSDK, app: Koatty, options: TraceOptions) {
   const shutdownHandler = async () => {

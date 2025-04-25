@@ -18,6 +18,25 @@ import { BaseHandler, Handler } from './base';
 import { extensionOptions } from "../trace/itrace";
 import { Helper } from "koatty_lib";
 
+/**
+ * WebSocket handler class implementing the Handler interface.
+ * Manages WebSocket connections and handles request/response lifecycle.
+ * Uses Singleton pattern to ensure only one instance exists.
+ * 
+ * Features:
+ * - Timeout handling for WebSocket connections
+ * - Support for WebSocket compression (permessage-deflate)
+ * - Request tracking with timing information
+ * - Error handling and status code management
+ * 
+ * @class WsHandler
+ * @extends BaseHandler
+ * @implements Handler
+ * 
+ * @example
+ * const handler = WsHandler.getInstance();
+ * await handler.handle(ctx, next, options);
+ */
 export class WsHandler extends BaseHandler implements Handler {
   private static instance: WsHandler;
 

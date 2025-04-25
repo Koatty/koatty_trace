@@ -12,7 +12,7 @@
 import { KoattyContext } from "koatty_core";
 import { Helper } from "koatty_lib";
 import { randomUUID } from 'node:crypto';
-import { TraceOptions } from "./itrace";
+import { TraceOptions } from "../trace/itrace";
 
 /**
  * Get request id from context based on protocol and options.

@@ -10,8 +10,15 @@
 
 import { DefaultLogger } from "koatty_logger";
 
+/**
+ * A logger class that provides different levels of logging functionality.
+ * Wraps the DefaultLogger to provide error, warning, info, debug and verbose level logging.
+ * 
+ * @export
+ * @class Logger
+ */
 export class Logger {
-  /** Log an error scenario that was not expected and caused the requested operation to fail. */
+/** Log an error scenario that was not expected and caused the requested operation to fail. */
   error(...args: any[]) {
     DefaultLogger.error(args);
   }

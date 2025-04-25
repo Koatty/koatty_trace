@@ -11,14 +11,20 @@ import { TraceOptions } from '../trace/itrace';
 import { Koatty } from 'koatty_core';
 
 /**
- * Initialize Prometheus exporter
- * @param {Koatty} app 
- * @param {TraceOptions} options 
- * @returns {MeterProvider|null}
+ * Initialize and configure Prometheus metrics exporter
+ * 
+ * @param {Koatty} app - The Koatty application instance
+ * @param {TraceOptions} options - Configuration options for tracing
+ * @returns {MeterProvider | null} Returns MeterProvider instance if metrics enabled, null otherwise
+ * 
+ * @description
+ * This function sets up Prometheus metrics exporter based on the provided configuration.
+ * It only initializes the exporter in production environment or when metricsEndpoint is specified.
+ * The function configures the exporter with the specified endpoint and port, and registers default metrics.
  */
 export function initPrometheusExporter(app: Koatty, options: TraceOptions): MeterProvider | null {
-  // Environment detection
-  const isProduction = options.metricsConf?.metricsEndpoint 
+// Environment detection
+  const isProduction = options.metricsConf?.metricsEndpoint
     || process.env.NODE_ENV === 'production';
 
   if (!isProduction || !options.metricsConf?.metricsEndpoint) {
@@ -41,9 +47,14 @@ export function initPrometheusExporter(app: Koatty, options: TraceOptions): Mete
 }
 
 /**
- * Register default application metrics
- * @param {MeterProvider} meterProvider 
- * @param {Koatty} app 
+ * Register default metrics for OpenTelemetry monitoring
+ * 
+ * @param meterProvider - The OpenTelemetry MeterProvider instance
+ * @param app - The Koatty application instance
+ * @returns Object containing metrics counters and histogram
+ *          - requestCounter: Counter for total HTTP requests
+ *          - errorCounter: Counter for HTTP errors
+ *          - responseTime: Histogram for response time in seconds
  */
 function registerDefaultMetrics(meterProvider: MeterProvider, app: Koatty) {
   const meter = meterProvider.getMeter(app.name);

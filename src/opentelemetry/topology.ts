@@ -14,6 +14,19 @@ interface ServiceNode {
   dependencies: Set<string>;
 }
 
+/**
+ * A singleton class for analyzing and managing service topology dependencies.
+ * Provides functionality to record, query and visualize service dependencies.
+ * 
+ * @example
+ * ```ts
+ * const analyzer = TopologyAnalyzer.getInstance();
+ * analyzer.recordServiceDependency('serviceA', 'serviceB');
+ * const deps = analyzer.getServiceDependencies('serviceA');
+ * ```
+ * 
+ * @class TopologyAnalyzer
+ */
 export class TopologyAnalyzer {
   private static instance: TopologyAnalyzer;
   private serviceMap: Map<string, ServiceNode>;

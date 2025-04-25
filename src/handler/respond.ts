@@ -20,7 +20,20 @@ import type { CompressOptions } from 'koa-compress';
 const StatusEmpty = [204, 205, 304];
 
 /**
- * Create compression middleware based on options
+ * Creates a compression middleware based on the client's Accept-Encoding header.
+ * Supports Brotli and Gzip compression algorithms.
+ * 
+ * @param {KoattyContext} ctx - The Koatty context object
+ * @returns {Function} Compression middleware function
+ * - Returns Brotli compression if 'br' is supported
+ * - Returns Gzip compression if 'gzip' is supported
+ * - Returns pass-through middleware if no compression is supported
+ * 
+ * @remarks
+ * - Compression threshold is set to 1024 bytes
+ * - Excludes image content types from compression
+ * - Brotli compression uses quality level 4
+ * - Gzip uses Z_SYNC_FLUSH mode
  */
 export function compressMiddleware(ctx: KoattyContext): ReturnType<typeof compress> {
   const acceptEncoding = ctx.get('Accept-Encoding') || '';

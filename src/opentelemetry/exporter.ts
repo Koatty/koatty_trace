@@ -11,7 +11,21 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { ExportResult, ExportResultCode } from '@opentelemetry/core';
 
 /**
- * Custom OTLP Trace Exporter with retry and circuit breaker mechanism
+ * A trace exporter with retry mechanism and circuit breaker pattern for OpenTelemetry.
+ * Extends the base OTLPTraceExporter with additional reliability features.
+ * 
+ * Features:
+ * - Configurable retry attempts for failed exports
+ * - Circuit breaker pattern to prevent cascading failures
+ * - Exponential backoff delay between retries
+ * 
+ * @extends OTLPTraceExporter
+ * 
+ * @param {Object} config - Configuration object
+ * @param {number} [config.maxRetries=3] - Maximum number of retry attempts
+ * @param {number} [config.retryDelay=1000] - Base delay between retries in milliseconds
+ * @param {number} [config.failureThreshold=5] - Number of failures before circuit opens
+ * @param {number} [config.resetTimeout=30000] - Time in milliseconds before attempting to close circuit
  */
 export class RetryOTLPTraceExporter extends OTLPTraceExporter {
   private readonly maxRetries: number;
