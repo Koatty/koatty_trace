@@ -12,6 +12,7 @@ import type { Handler } from './base';
 import { HttpHandler } from './http';
 import { GrpcHandler } from './grpc';
 import { WsHandler } from './ws';
+import { DefaultLogger as logger } from 'koatty_logger';
 
 
 /**
@@ -47,7 +48,10 @@ export class HandlerFactory {
    */
   static getHandler(type: ProtocolType): Handler {
     const handler = this.handlers.get(type);
-    // Fallback to HTTP handler if protocol not supported
-    return handler || this.handlers.get(ProtocolType.HTTP)!;
+    if (!handler) {
+      logger.warn(`Handler for protocol ${type} not found, falling back to HTTP`);
+      return this.handlers.get(ProtocolType.HTTP)!;
+    }
+    return handler;
   }
 }

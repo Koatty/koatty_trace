@@ -85,14 +85,25 @@ describe('prometheus.ts', () => {
     // Verify default metrics are registered
     const mockMeter = (MeterProvider as jest.Mock).mock.results[0].value.getMeter();
     
-    expect(mockMeter.createCounter).toHaveBeenCalledWith('http_requests_total', {
-      description: 'Total HTTP requests',
+    expect(mockMeter.createCounter).toHaveBeenCalledWith('requests_total', {
+      description: 'Total requests across all protocols',
       unit: '1'
     });
-    expect(mockMeter.createHistogram).toHaveBeenCalledWith('http_response_time_seconds', {
-      description: 'HTTP response time in seconds',
+    
+    expect(mockMeter.createCounter).toHaveBeenCalledWith('errors_total', {
+      description: 'Total errors across all protocols',
+      unit: '1'
+    });
+    
+    expect(mockMeter.createHistogram).toHaveBeenCalledWith('response_time_seconds', {
+      description: 'Response time in seconds across all protocols',
       unit: 's',
       advice: { explicitBucketBoundaries: [0.1, 0.5, 1, 2.5, 5, 10] }
+    });
+    
+    expect(mockMeter.createCounter).toHaveBeenCalledWith('websocket_connections_total', {
+      description: 'Total WebSocket connections',
+      unit: '1'
     });
   });
 

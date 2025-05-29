@@ -20,6 +20,7 @@ import { extensionOptions, TraceOptions } from "./itrace";
 import { initSDK, startTracer } from "../opentelemetry/sdk";
 import { TopologyAnalyzer } from "../opentelemetry/topology";
 import { getRequestId, getTraceId } from '../utils/utils';
+import { collectHttpMetrics } from '../opentelemetry/prometheus';
 
 /** 
  * defaultOptions
@@ -272,46 +273,61 @@ async function handleRequest(
   let result;
   const retryConf = options.retryConf || { enabled: false };
 
-  if (retryConf.enabled) {
-    const maxRetries = retryConf.count || 3;
-    const interval = retryConf.interval || 1000;
+  try {
+    if (retryConf.enabled) {
+      const maxRetries = retryConf.count || 3;
+      const interval = retryConf.interval || 1000;
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          result = await respWarper(ctx, next, options, ext);
+          break;
+        } catch (error) {
+          // Check if error should be retried
+          const shouldRetry = retryConf.conditions
+            ? retryConf.conditions(error)
+            : true;
+
+          if (!shouldRetry || attempt === maxRetries) {
+            throw error;
+          }
+
+          // Wait before next retry
+          if (interval > 0) {
+            await new Promise(resolve => setTimeout(resolve, interval));
+          }
+        }
+      }
+    } else {
+      result = await respWarper(ctx, next, options, ext);
+    }
+  } finally {
+    // Calculate request duration
+    const duration = performance.now() - startTime;
+    
+    // Collect HTTP metrics using the new metrics collector
+    collectHttpMetrics(ctx, duration);
+    
+    // Legacy metrics reporter support (for backward compatibility)
+    const metricsConf = options.metricsConf || {};
+    if (metricsConf.reporter) {
       try {
-        result = await respWarper(ctx, next, options, ext);
-        break;
+        metricsConf.reporter({
+          duration,
+          status: ctx.status || 200,
+          path: ctx.path,
+          attributes: {
+            ...(metricsConf.defaultAttributes || {}),
+            requestId: ctx.requestId,
+            method: ctx.method,
+            protocol: ctx.protocol
+          }
+        });
       } catch (error) {
-        // Check if error should be retried
-        const shouldRetry = retryConf.conditions
-          ? retryConf.conditions(error)
-          : true;
-
-        if (!shouldRetry || attempt === maxRetries) {
-          throw error;
-        }
-
-        // Wait before next retry
-        if (interval > 0) {
-          await new Promise(resolve => setTimeout(resolve, interval));
-        }
+        // Don't let metrics reporting errors affect the request
+        console.warn('Metrics reporter error:', error);
       }
     }
-  } else {
-    result = await respWarper(ctx, next, options, ext);
-  }
-
-  // Report metrics after request processing is complete
-  const metricsConf = options.metricsConf || {};
-  if (metricsConf.reporter && ext.spanManager) {
-    metricsConf.reporter({
-      duration: performance.now() - startTime,
-      status: ctx.status || 200,
-      path: ctx.path,
-      attributes: {
-        ...(metricsConf.defaultAttributes || {}),
-        // add other attributes here
-      }
-    });
   }
 
   return result;

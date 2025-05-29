@@ -13,6 +13,7 @@ import { DefaultLogger as Logger } from "koatty_logger";
 import { Span } from '@opentelemetry/api';
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { extensionOptions } from "../trace/itrace";
+import { collectRequestMetrics } from '../opentelemetry/prometheus';
 
 
 export interface Handler {
@@ -32,6 +33,7 @@ export abstract class BaseHandler implements Handler {
   protected commonPostHandle(ctx: KoattyContext, ext: extensionOptions, msg?: string) {
     this.logRequest(ctx, ext, msg);
     this.endTraceSpan(ctx, ext, msg);
+    this.collectMetrics(ctx, ext);
   }
 
   protected handleError(err: Error, ctx: KoattyContext, ext: extensionOptions) {
@@ -62,6 +64,18 @@ export abstract class BaseHandler implements Handler {
       });
       ext.spanManager.addSpanEvent("request", { "message": msg });
       ext.spanManager.endSpan();
+    }
+  }
+
+  /**
+   * Collect metrics for the request
+   * @param ctx - Koatty context object
+   * @param ext - Extension options
+   */
+  private collectMetrics(ctx: KoattyContext, ext?: extensionOptions) {
+    if (ctx.startTime) {
+      const duration = Date.now() - ctx.startTime;
+      collectRequestMetrics(ctx, duration);
     }
   }
 
