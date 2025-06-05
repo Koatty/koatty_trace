@@ -458,7 +458,7 @@ export class MetricsCollector {
    */
   recordCustomMetric(name: string, value: number, labels: Record<string, string> = {}) {
     try {
-      console.log(`Custom metric recorded: ${name} = ${value}`, labels);
+      logger.log(`Custom metric recorded: ${name} = ${value}`, labels);
       logger.debug(`Custom metric recorded: ${name} = ${value}`, labels);
     } catch (error) {
       logger.error(`Failed to record custom metric ${name}:`, error);

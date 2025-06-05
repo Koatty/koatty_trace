@@ -9,6 +9,7 @@
  */
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { ExportResult, ExportResultCode } from '@opentelemetry/core';
+import { DefaultLogger as Logger } from 'koatty_logger';
 
 /**
  * A trace exporter with retry mechanism and circuit breaker pattern for OpenTelemetry.
@@ -92,12 +93,12 @@ export class RetryOTLPTraceExporter extends OTLPTraceExporter {
     this.circuitState = 'OPEN';
     this.lastFailureTime = Date.now();
     this.failureCount = 0;
-    console.warn('Circuit breaker tripped - stopping exports temporarily');
+    Logger.warn('Circuit breaker tripped - stopping exports temporarily');
   }
 
   private resetCircuit() {
     this.circuitState = 'CLOSED';
     this.failureCount = 0;
-    console.info('Circuit breaker reset - exports resumed');
+    Logger.info('Circuit breaker reset - exports resumed');
   }
 }

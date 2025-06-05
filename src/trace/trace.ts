@@ -10,7 +10,6 @@
 import { IOCContainer } from "koatty_container";
 import { AppEvent, Koatty, KoattyContext, KoattyNext } from "koatty_core";
 import { Helper } from "koatty_lib";
-import { Span } from '@opentelemetry/api';
 import { SpanManager } from '../opentelemetry/spanManager';
 import { performance } from 'node:perf_hooks';
 import { HandlerFactory } from '../handler/factory';
@@ -21,6 +20,7 @@ import { initSDK, startTracer } from "../opentelemetry/sdk";
 import { TopologyAnalyzer } from "../opentelemetry/topology";
 import { getRequestId, getTraceId } from '../utils/utils';
 import { collectHttpMetrics } from '../opentelemetry/prometheus';
+import { DefaultLogger as Logger } from "koatty_logger";
 
 /** 
  * defaultOptions
@@ -325,7 +325,7 @@ async function handleRequest(
         });
       } catch (error) {
         // Don't let metrics reporting errors affect the request
-        console.warn('Metrics reporter error:', error);
+        Logger.warn('Metrics reporter error:', error);
       }
     }
   }
