@@ -184,6 +184,7 @@ export class MetricsCollector {
   private readonly pathCache: PathNormalizationCache;
   private readonly batchProcessor: MetricsBatchProcessor;
   private readonly startTime: number;
+  private memoryMonitorTimer: NodeJS.Timeout | null = null;
   
   // Pre-compiled regex patterns for better performance
   private static readonly UUID_PATTERN = /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -376,7 +377,7 @@ export class MetricsCollector {
   private setupMemoryMonitoring() {
     const monitorInterval = 60000; // 1 minute
     
-    setInterval(() => {
+    this.memoryMonitorTimer = setInterval(() => {
       try {
         const memUsage = process.memoryUsage();
         const cacheStats = this.pathCache.getStats();
@@ -484,6 +485,13 @@ export class MetricsCollector {
     try {
       this.batchProcessor.destroy();
       this.pathCache.clear();
+      
+      // Clear memory monitoring timer
+      if (this.memoryMonitorTimer) {
+        clearInterval(this.memoryMonitorTimer);
+        this.memoryMonitorTimer = null;
+      }
+      
       logger.info(`Metrics collector for ${this.serviceName} destroyed`);
     } catch (error) {
       logger.error('Error during metrics collector destruction:', error);
