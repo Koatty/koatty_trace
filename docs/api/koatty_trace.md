@@ -6,13 +6,26 @@
 
 ## Functions
 
-|  Function | Description |
-|  --- | --- |
-|  [Trace(options, app)](./koatty_trace.trace.md) | Trace middleware |
+<table><thead><tr><th>
 
-## Interfaces
+Function
 
-|  Interface | Description |
-|  --- | --- |
-|  [TraceOptions](./koatty_trace.traceoptions.md) | <p>TraceOptions</p><p>  TraceOptions</p> |
 
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+[Trace(options, app)](./koatty_trace.trace.md)
+
+
+</td><td>
+
+Trace middleware for Koatty framework that provides request tracing, topology analysis, and request lifecycle management capabilities.
+
+
+</td></tr>
+</tbody></table>

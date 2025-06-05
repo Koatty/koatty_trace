@@ -4,7 +4,7 @@
 
 ## Trace() function
 
-Trace middleware
+Trace middleware for Koatty framework that provides request tracing, topology analysis, and request lifecycle management capabilities.
 
 **Signature:**
 
@@ -14,14 +14,61 @@ export declare function Trace(options: TraceOptions, app: Koatty): (ctx: KoattyC
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  options | [TraceOptions](./koatty_trace.traceoptions.md) |  |
-|  app | Koatty |  |
+<table><thead><tr><th>
 
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+options
+
+
+</td><td>
+
+TraceOptions
+
+
+</td><td>
+
+Configuration options for the trace middleware
+
+
+</td></tr>
+<tr><td>
+
+app
+
+
+</td><td>
+
+Koatty
+
+
+</td><td>
+
+Koatty application instance
+
+
+</td></tr>
+</tbody></table>
 **Returns:**
 
 (ctx: KoattyContext, next: KoattyNext) =&gt; Promise&lt;any&gt;
 
-{<!-- -->\*<!-- -->} {<!-- -->Koa.Middleware<!-- -->}
+{<!-- -->Function<!-- -->} Middleware function that handles request tracing and lifecycle
+
+Features: - Request tracing with OpenTelemetry - Request ID generation and propagation - Service topology analysis - Request lifecycle management - Server shutdown handling - Async hooks support for request context
+
 
