@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.16.0](https://github.com/koatty/koatty_trace/compare/v1.15.2...v1.16.0) (2025-06-05)
+
+
+### Features
+
+* add memory monitoring with periodic checks and proper cleanup on destruction ([831467e](https://github.com/koatty/koatty_trace/commit/831467e2213a5a13bbfc34806ab1ea934db072b7))
+* add multi-protocol metrics collection with HTTP/WebSocket/gRPC support, protocol auto-detection, improved path normalization, and enhanced concurrency safety ([e28dcca](https://github.com/koatty/koatty_trace/commit/e28dccadf643a811da8c17bf8ba927d2df7119c9))
+* improve path normalization cache ([3c95563](https://github.com/koatty/koatty_trace/commit/3c95563ca11446a42be392e3d359236706708112))
+
 ## [1.16.1](https://github.com/koatty/koatty_trace/compare/v1.16.0...v1.16.1) (2025-05-29)
 
 ### 🚀 Features
