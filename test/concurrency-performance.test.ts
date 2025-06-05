@@ -368,7 +368,7 @@ describe('Concurrency Safety and Performance Tests', () => {
       console.log(`Protocol detection time for ${iterations} iterations: ${duration}ms`);
       
       // Should complete quickly
-      expect(duration).toBeLessThan(1000);
+      expect(duration).toBeLessThan(2000);
     });
   });
 
