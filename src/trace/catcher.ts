@@ -37,23 +37,23 @@ export function catcher<T extends Exception>(
 ) {
   const { message: sanitizedMessage, status } = getErrorInfo(ctx, err);
   const code = (<T>err).code || 1;
-  const sanitizedStack = sanitizeStack(err.stack);
+  const stack = err.stack;
   const span = ext.spanManager?.getSpan();
 
   // 如果是异常对象，直接返回
   if (isException(err)) {
     return (<Exception>err).setCode(code).setStatus(status).
-      setMessage(sanitizedMessage).setSpan(span).setStack(sanitizedStack).handler(ctx);
+      setMessage(sanitizedMessage).setSpan(span).setStack(stack).handler(ctx);
   }
   // 执行自定义全局异常处理
   const ins: Exception = IOCContainer.getInsByClass(ext.globalErrorHandler,
-    [sanitizedMessage, code, status, sanitizedStack, span])
+    [sanitizedMessage, code, status, stack, span])
   if (Helper.isFunction(ins?.handler)) {
     return ins.handler(ctx);
   }
 
   // 使用默认异常处理
-  return new Exception(sanitizedMessage, code, status, sanitizedStack, span).handler(ctx);
+  return new Exception(sanitizedMessage, code, status, stack, span).handler(ctx);
 }
 
 /**
@@ -103,37 +103,4 @@ function getErrorInfo<T extends Exception>(ctx: KoattyContext,
   }
 
   return { status, message };
-}
-
-
-/**
- * Sanitizes a stack trace by removing or redacting sensitive information.
- * This includes file paths, IP addresses, email addresses, and authentication tokens.
- * 
- * @param stack - The stack trace string to sanitize
- * @returns The sanitized stack trace with sensitive information replaced by '[REDACTED]'
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function sanitizeStack(stack?: string): string {
-  if (!stack) return '';
-
-  // 常见需要脱敏的模式
-  const sensitivePatterns = [
-    // 文件路径 (Windows & Unix)
-    /([A-Za-z]:\\[^\s]+|\/[^\s]+)/g,
-    // IP地址
-    /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g,
-    // 邮箱
-    /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/g,
-    // 密钥/令牌
-    /(Bearer\s+[a-zA-Z0-9-._~+/]+=*)/gi,
-    /(access_?token=|key=|secret=)([a-zA-Z0-9-._~+/]+=*)/gi
-  ];
-
-  let sanitized = stack;
-  sensitivePatterns.forEach(pattern => {
-    sanitized = sanitized.replace(pattern, '[REDACTED]');
-  });
-
-  return sanitized;
 }
