@@ -27,56 +27,56 @@ export enum ProtocolType {
 class PathNormalizationCache {
   private cache = new Map<string, string>();
   private readonly maxSize: number;
-  private accessCount = new Map<string, number>();
+  private totalHits = 0;
+  private totalAccesses = 0;
 
   constructor(maxSize = 10000) {
     this.maxSize = maxSize;
   }
 
   get(path: string): string | undefined {
+    this.totalAccesses++;
     const normalized = this.cache.get(path);
     if (normalized) {
-      // Update access count for LRU
-      this.accessCount.set(path, (this.accessCount.get(path) || 0) + 1);
+      this.totalHits++;
+      // Move to end for simple LRU (Map maintains insertion order)
+      this.cache.delete(path);
+      this.cache.set(path, normalized);
     }
     return normalized;
   }
 
   set(path: string, normalized: string): void {
-    if (this.cache.size >= this.maxSize) {
-      this.evictLeastUsed();
+    if (this.cache.has(path)) {
+      // Update existing entry
+      this.cache.delete(path);
+      this.cache.set(path, normalized);
+      return;
     }
-    this.cache.set(path, normalized);
-    this.accessCount.set(path, 1);
-  }
 
-  private evictLeastUsed(): void {
-    let leastUsedKey = '';
-    let minCount = Infinity;
-    
-    for (const [key, count] of this.accessCount) {
-      if (count < minCount) {
-        minCount = count;
-        leastUsedKey = key;
+    if (this.cache.size >= this.maxSize) {
+      // Remove oldest entry (first in Map)
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) {
+        this.cache.delete(firstKey);
       }
     }
-    
-    if (leastUsedKey) {
-      this.cache.delete(leastUsedKey);
-      this.accessCount.delete(leastUsedKey);
-    }
+    this.cache.set(path, normalized);
   }
 
   clear(): void {
     this.cache.clear();
-    this.accessCount.clear();
+    this.totalHits = 0;
+    this.totalAccesses = 0;
   }
 
   getStats() {
     return {
       size: this.cache.size,
       maxSize: this.maxSize,
-      hitRate: this.cache.size > 0 ? this.accessCount.size / this.cache.size : 0
+      hitRate: this.totalAccesses > 0 ? this.totalHits / this.totalAccesses : 0,
+      totalHits: this.totalHits,
+      totalAccesses: this.totalAccesses
     };
   }
 }
@@ -607,4 +607,5 @@ export function collectRequestMetrics(ctx: KoattyContext, duration: number) {
     collector.collectRequestMetrics(ctx, duration);
   }
 }
+
 

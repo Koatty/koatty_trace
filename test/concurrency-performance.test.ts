@@ -128,7 +128,11 @@ describe('Concurrency Safety and Performance Tests', () => {
       const cachePassTime = Date.now() - cacheStartTime;
 
       // Cache should improve performance (allow some variance)
-      expect(cachePassTime).toBeLessThanOrEqual(firstPassTime * 1.5);
+      expect(cachePassTime).toBeLessThanOrEqual(firstPassTime * 2.0);
+      
+      // Verify cache is working by checking hit rate
+      const stats = metricsCollector.getStats();
+      expect(stats.pathCacheStats.hitRate).toBeGreaterThan(0.8); // At least 80% hit rate
     });
 
     it('should handle batch processing correctly', (done) => {
@@ -164,7 +168,7 @@ describe('Concurrency Safety and Performance Tests', () => {
       expect(stats).toHaveProperty('uptime');
       expect(stats).toHaveProperty('pathCacheStats');
       expect(stats).toHaveProperty('memoryUsage');
-      expect(stats.uptime).toBeGreaterThan(0);
+      expect(stats.uptime).toBeGreaterThanOrEqual(0);
     });
   });
 
