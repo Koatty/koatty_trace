@@ -1,5 +1,5 @@
 /**
- * @Description: HTTP Metrics Collection Test
+ * @Description: Request Metrics Collection Test
  * @Author: richen
  * @Date: 2025-04-04 20:30:00
  * @License: BSD (3-Clause)
@@ -7,10 +7,10 @@
  */
 
 import { KoattyContext } from "koatty_core";
-import { collectHttpMetrics, getMetricsCollector, MetricsCollector, initPrometheusExporter } from "../src/opentelemetry/prometheus";
+import { collectRequestMetrics, getMetricsCollector, MetricsCollector, initPrometheusExporter } from "../src/opentelemetry/prometheus";
 import { MeterProvider } from '@opentelemetry/sdk-metrics';
 
-describe('HTTP Metrics Collection', () => {
+describe('Request Metrics Collection', () => {
   let mockCtx: Partial<KoattyContext>;
   let mockMeterProvider: MeterProvider;
   let metricsCollector: MetricsCollector;
@@ -39,7 +39,7 @@ describe('HTTP Metrics Collection', () => {
     expect(typeof metricsCollector.recordCustomMetric).toBe('function');
   });
 
-  test('should collect HTTP request metrics without errors', () => {
+  test('should collect request metrics without errors', () => {
     const duration = 150; // 150ms
     
     // This should not throw any errors
@@ -74,10 +74,10 @@ describe('HTTP Metrics Collection', () => {
     }).not.toThrow();
   });
 
-  test('should handle collectHttpMetrics when no global collector exists', () => {
+  test('should handle collectRequestMetrics when no global collector exists', () => {
     // When no global collector is initialized, this should not throw
     expect(() => {
-      collectHttpMetrics(mockCtx as KoattyContext, 100);
+      collectRequestMetrics(mockCtx as KoattyContext, 100);
     }).not.toThrow();
   });
 

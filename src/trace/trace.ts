@@ -19,7 +19,7 @@ import { extensionOptions, TraceOptions } from "./itrace";
 import { initSDK, startTracer } from "../opentelemetry/sdk";
 import { TopologyAnalyzer } from "../opentelemetry/topology";
 import { getRequestId, getTraceId } from '../utils/utils';
-import { collectHttpMetrics } from '../opentelemetry/prometheus';
+import { collectRequestMetrics } from '../opentelemetry/prometheus';
 import { DefaultLogger as Logger } from "koatty_logger";
 
 /** 
@@ -305,8 +305,8 @@ async function handleRequest(
     // Calculate request duration
     const duration = performance.now() - startTime;
     
-    // Collect HTTP metrics using the new metrics collector
-    collectHttpMetrics(ctx, duration);
+    // Collect request metrics using the new metrics collector
+    collectRequestMetrics(ctx, duration);
     
     // Legacy metrics reporter support (for backward compatibility)
     const metricsConf = options.metricsConf || {};

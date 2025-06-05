@@ -600,11 +600,3 @@ export function collectRequestMetrics(ctx: KoattyContext, duration: number) {
   }
 }
 
-/**
- * @deprecated Use collectRequestMetrics instead
- * Collect metrics for HTTP request (convenience function)
- */
-export function collectHttpMetrics(ctx: KoattyContext, duration: number) {
-  logger.warn('collectHttpMetrics is deprecated, use collectRequestMetrics instead');
-  collectRequestMetrics(ctx, duration);
-}
